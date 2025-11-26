@@ -15,7 +15,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
     const { name, value } = e.target;
     setLocalSettings(prev => ({
       ...prev,
-      [name]: (name.includes('Time') || name === 'currencySymbol' || name === 'birthDate') ? value : Number(value)
+      [name]: (name.includes('Time') || name.includes('Date') || name === 'currencySymbol' || name === 'targetName') ? value : Number(value)
     }));
   };
 
@@ -38,7 +38,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
           <button onClick={onClose} className="text-2xl hover:scale-110 transition-transform">✖️</button>
         </div>
         
-        <div className="space-y-6 font-sans">
+        <div className="space-y-6 font-sans pb-10">
           
           <div className="bg-yellow-100 p-4 border-2 border-black shadow-comic-sm rounded-xl">
              <h3 className="font-black text-lg mb-3">💰 薪资待遇</h3>
@@ -127,6 +127,34 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
                   type="number"
                   name="retirementAge"
                   value={localSettings.retirementAge}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* New Redemption Section */}
+          <div className="bg-orange-100 p-4 border-2 border-black shadow-comic-sm rounded-xl">
+            <h3 className="font-black text-lg mb-3">⚔️ 牛马救赎 (里程碑)</h3>
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>目标名称 (如: 提桶跑路)</label>
+                <input
+                  type="text"
+                  name="targetName"
+                  value={localSettings.targetName || ''}
+                  placeholder="给自己一个盼头"
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>目标日期</label>
+                <input
+                  type="date"
+                  name="targetDate"
+                  value={localSettings.targetDate || ''}
                   onChange={handleChange}
                   className={inputClass}
                 />

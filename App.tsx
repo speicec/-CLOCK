@@ -8,6 +8,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { SortableItem } from './components/SortableItem';
 import { LunarCalendarModal } from './components/LunarCalendarModal';
 import { FocusMode } from './components/FocusMode';
+import { HolidayCard } from './components/HolidayCard';
+import { RedemptionCard } from './components/RedemptionCard';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -19,6 +21,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   currencySymbol: '¥',
   birthDate: '1995-01-01',
   retirementAge: 60,
+  targetName: '',
+  targetDate: '',
 };
 
 const QUOTE_REFRESH_INTERVAL = 30 * 60 * 1000; 
@@ -31,7 +35,15 @@ function App() {
 
   const [cardOrder, setCardOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('niuMaCardOrder');
-    return saved ? JSON.parse(saved) : ['earnings', 'shortPain', 'longPain', 'quote'];
+    // Migration: ensure new cards exist for old users
+    const defaultOrder = ['earnings', 'shortPain', 'holidays', 'redemption', 'longPain', 'quote'];
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge unique items from defaultOrder that are missing in parsed
+      const missing = defaultOrder.filter(item => !parsed.includes(item));
+      return [...parsed, ...missing];
+    }
+    return defaultOrder;
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -350,6 +362,10 @@ function App() {
             </div>
           </InfoCard>
         );
+      case 'holidays':
+        return <HolidayCard endTime={settings.endTime} />;
+      case 'redemption':
+        return <RedemptionCard targetName={settings.targetName} targetDate={settings.targetDate} />;
       case 'longPain':
         return (
           <InfoCard 

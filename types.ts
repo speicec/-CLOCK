@@ -7,6 +7,8 @@ export interface UserSettings {
   currencySymbol: string;
   birthDate: string; // "1990-01-01"
   retirementAge: number; // 60
+  targetName?: string; // "Quit Job"
+  targetDate?: string; // "2025-12-31"
 }
 
 export interface EarningsData {
