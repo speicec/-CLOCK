@@ -25,3 +25,9 @@ export enum WorkStatus {
   OVERTIME = '加班地狱',
   FREEDOM = '已下班',
 }
+
+export interface WorkLog {
+  date: string; // "YYYY-MM-DD"
+  startTime: string;
+  endTime?: string;
+}

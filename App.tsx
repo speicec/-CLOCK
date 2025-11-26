@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { InfoCard } from './components/InfoCard';
 import { generateWorkerQuote } from './services/geminiService';
-import { UserSettings, EarningsData, WorkStatus } from './types';
+import { UserSettings, EarningsData, WorkStatus, WorkLog } from './types';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem } from './components/SortableItem';
@@ -10,6 +10,8 @@ import { LunarCalendarModal } from './components/LunarCalendarModal';
 import { FocusMode } from './components/FocusMode';
 import { HolidayCard } from './components/HolidayCard';
 import { RedemptionCard } from './components/RedemptionCard';
+import { ShareModal } from './components/ShareModal';
+import { ClockInCard } from './components/ClockInCard';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -36,18 +38,24 @@ function App() {
   const [cardOrder, setCardOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('niuMaCardOrder');
     // Migration: ensure new cards exist for old users
-    const defaultOrder = ['earnings', 'shortPain', 'holidays', 'redemption', 'longPain', 'quote'];
+    const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'holidays', 'redemption', 'longPain', 'quote'];
     if (saved) {
       const parsed = JSON.parse(saved);
       // Merge unique items from defaultOrder that are missing in parsed
       const missing = defaultOrder.filter(item => !parsed.includes(item));
-      return [...parsed, ...missing];
+      return [...missing, ...parsed]; // Add new cards to top usually, or stick to bottom
     }
     return defaultOrder;
   });
 
+  const [workLogs, setWorkLogs] = useState<WorkLog[]>(() => {
+    const saved = localStorage.getItem('niuMaWorkLogs');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   // Focus Mode State
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -134,6 +142,41 @@ function App() {
     setSettings(newSettings);
     localStorage.setItem('niuMaSettings_v2', JSON.stringify(newSettings));
     lastQuoteTimeRef.current = 0; 
+  };
+
+  // Save logs
+  useEffect(() => {
+    localStorage.setItem('niuMaWorkLogs', JSON.stringify(workLogs));
+  }, [workLogs]);
+
+  // Handle Clock In
+  const handleClockIn = () => {
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+    const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    setWorkLogs(prev => {
+      // Check if already clocked in today
+      const exists = prev.find(l => l.date === todayStr);
+      if (exists) return prev;
+      return [...prev, { date: todayStr, startTime: timeStr }];
+    });
+  };
+
+  // Handle Clock Out
+  const handleClockOut = () => {
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+    const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    setWorkLogs(prev => {
+      return prev.map(log => {
+        if (log.date === todayStr) {
+          return { ...log, endTime: timeStr };
+        }
+        return log;
+      });
+    });
   };
 
   // Calculate Logic
@@ -304,6 +347,14 @@ function App() {
   // Render Map
   const renderCard = (id: string) => {
     switch(id) {
+      case 'clockIn':
+        return (
+          <ClockInCard 
+            logs={workLogs} 
+            onClockIn={handleClockIn} 
+            onClockOut={handleClockOut} 
+          />
+        );
       case 'earnings':
         return (
           <InfoCard 
@@ -444,6 +495,12 @@ function App() {
           </div>
           <div className="flex gap-2">
              <button
+               onClick={() => setIsShareModalOpen(true)}
+               className="p-2 border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+             >
+                📸
+             </button>
+             <button
                onClick={enterFocusMode}
                className="hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
                title="全屏进入专注模式"
@@ -510,6 +567,14 @@ function App() {
         isOpen={isCalendarOpen} 
         onClose={() => setIsCalendarOpen(false)} 
         date={currentTime}
+      />
+
+      <ShareModal
+         isOpen={isShareModalOpen}
+         onClose={() => setIsShareModalOpen(false)}
+         status={status}
+         timeRemaining={earnings.timeRemaining}
+         earned={earnings.earnedToday.toFixed(2)}
       />
     </div>
   );
