@@ -13,6 +13,7 @@ import { RedemptionCard } from './components/RedemptionCard';
 import { ShareModal } from './components/ShareModal';
 import { ClockInCard } from './components/ClockInCard';
 import { SlackingWidget } from './components/SlackingWidget';
+import { WorkLogStatsModal } from './components/WorkLogStatsModal';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -62,6 +63,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isLogStatsOpen, setIsLogStatsOpen] = useState(false);
   
   // Focus Mode State
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -359,6 +361,7 @@ function App() {
             logs={workLogs} 
             onClockIn={handleClockIn} 
             onClockOut={handleClockOut} 
+            onShowStats={() => setIsLogStatsOpen(true)}
           />
         );
       case 'earnings':
@@ -596,6 +599,13 @@ function App() {
          avatar={settings.avatar}
          targetName={settings.targetName}
          targetDate={settings.targetDate}
+      />
+
+      <WorkLogStatsModal 
+         isOpen={isLogStatsOpen}
+         onClose={() => setIsLogStatsOpen(false)}
+         logs={workLogs}
+         dailyHoursTarget={settings.dailyHours}
       />
     </div>
   );

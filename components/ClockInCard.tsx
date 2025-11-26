@@ -7,9 +7,10 @@ interface ClockInCardProps {
   logs: WorkLog[];
   onClockIn: () => void;
   onClockOut: () => void;
+  onShowStats: () => void;
 }
 
-export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClockOut }) => {
+export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClockOut, onShowStats }) => {
   // Get today's status
   const todayStr = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
   const todayLog = logs.find(log => log.date === todayStr);
@@ -69,7 +70,15 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
     <InfoCard 
       title="每日打卡" 
       bgColor="bg-white" 
-      icon={<span>📅</span>}
+      icon={
+        <button 
+           onClick={(e) => { e.stopPropagation(); onShowStats(); }}
+           className="text-xl hover:scale-110 transition-transform active:scale-90"
+           title="查看血汗史"
+        >
+           📈
+        </button>
+      }
     >
       <div className="mt-2">
         <div className="mb-4 text-center">
