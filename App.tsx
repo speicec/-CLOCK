@@ -7,6 +7,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem } from './components/SortableItem';
 import { LunarCalendarModal } from './components/LunarCalendarModal';
+import { FocusMode } from './components/FocusMode';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -35,6 +36,10 @@ function App() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
+  // Focus Mode State
+  const [isFocusMode, setIsFocusMode] = useState(false);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [earnings, setEarnings] = useState<EarningsData>({
     earnedToday: 0,
@@ -67,6 +72,36 @@ function App() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Detect Orientation and Fullscreen for Focus Mode
+  useEffect(() => {
+    const checkFocusCondition = () => {
+      const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+      // On mobile, isLandscape is often enough. On desktop, check for fullscreen API.
+      const isFullscreen = !!document.fullscreenElement;
+      
+      // We trigger focus mode if:
+      // 1. It is Fullscreen (Desktop or Mobile via API)
+      // 2. OR it is Mobile Landscape (width > height and touch capable roughly)
+      const isMobileLandscape = isLandscape && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      
+      if (isFullscreen || isMobileLandscape) {
+        setIsFocusMode(true);
+      } else {
+        setIsFocusMode(false);
+      }
+    };
+
+    window.addEventListener('resize', checkFocusCondition);
+    document.addEventListener('fullscreenchange', checkFocusCondition);
+    // Initial check
+    checkFocusCondition();
+
+    return () => {
+      window.removeEventListener('resize', checkFocusCondition);
+      document.removeEventListener('fullscreenchange', checkFocusCondition);
+    };
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -223,6 +258,29 @@ function App() {
     fetchQuote(status);
   };
 
+  // Trigger Fullscreen for Focus Mode
+  const enterFocusMode = async () => {
+    try {
+        if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+        }
+    } catch (err) {
+        console.error("Error attempting to enable full-screen mode:", err);
+    }
+  };
+
+  const exitFocusMode = async () => {
+    try {
+        if (document.fullscreenElement) {
+            await document.exitFullscreen();
+        }
+        // Force state update if logic relies on resize event that hasn't fired yet
+        setIsFocusMode(false);
+    } catch (err) {
+        console.error("Error attempting to exit full-screen mode:", err);
+    }
+  };
+
   const formattedTime = currentTime.toLocaleTimeString('zh-CN', { 
     hour12: false,
     hour: '2-digit',
@@ -356,6 +414,9 @@ function App() {
   return (
     <div className="min-h-screen w-full font-sans pb-12">
       
+      {/* Focus Mode Overlay */}
+      {isFocusMode && <FocusMode onExit={exitFocusMode} />}
+
       {/* Navbar */}
       <nav className="sticky top-0 z-40 bg-[#fcfbf7]/90 backdrop-blur-md border-b-4 border-black py-3">
         <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
@@ -365,12 +426,21 @@ function App() {
             </div>
             <h1 className="font-black text-2xl tracking-tighter font-hand">牛马时钟</h1>
           </div>
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-          >
-            ⚙️ 设置
-          </button>
+          <div className="flex gap-2">
+             <button
+               onClick={enterFocusMode}
+               className="hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+               title="全屏进入专注模式"
+             >
+               🍅 专注模式
+             </button>
+             <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+             >
+                ⚙️ 设置
+             </button>
+          </div>
         </div>
       </nav>
 
