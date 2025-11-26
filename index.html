@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>牛马时钟 | Wage Slave Clock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Nunito', 'sans-serif'],
+              hand: ['"ZCOOL KuaiLe"', 'cursive'],
+            },
+            boxShadow: {
+              'comic': '5px 5px 0px 0px rgba(0,0,0,1)',
+              'comic-sm': '3px 3px 0px 0px rgba(0,0,0,1)',
+              'comic-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
+            },
+            colors: {
+              'paper': '#fcfbf7',
+              'ink': '#1a1a1a',
+            },
+            animation: {
+              'bounce-sm': 'bounce-sm 0.5s infinite alternate',
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+              'slide-in': 'slide-in 0.3s ease-out forwards',
+              'fade-in': 'fade-in 0.2s ease-out forwards',
+            },
+            keyframes: {
+              'bounce-sm': {
+                '0%': { transform: 'translateY(0)' },
+                '100%': { transform: 'translateY(-5px)' },
+              },
+              'shake': {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              },
+              'slide-in': {
+                '0%': { transform: 'translateY(100%)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' }
+              },
+              'fade-in': {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #fcfbf7;
+        color: #1a1a1a;
+        background-image: radial-gradient(#00000010 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-left: 2px solid #000;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #000;
+        border: 2px solid #000;
+        border-radius: 0;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #333;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@6.1.0?external=react,react-dom",
+    "@dnd-kit/sortable": "https://esm.sh/@dnd-kit/sortable@8.0.0?external=react,react-dom,@dnd-kit/core,@dnd-kit/utilities",
+    "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@3.2.2?external=react,react-dom",
+    "lunar-javascript": "https://esm.sh/lunar-javascript@1.6.12"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

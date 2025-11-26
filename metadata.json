@@ -1,0 +1,5 @@
+{
+  "name": "牛马时钟 (Niu Ma Clock)",
+  "description": "A satirical yet functional dashboard for the modern corporate worker. Tracks real-time earnings based on salary, calculates time until freedom, and provides AI-powered cynical workplace wisdom.",
+  "requestFramePermissions": []
+}
