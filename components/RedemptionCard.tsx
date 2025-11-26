@@ -4,9 +4,10 @@ import { InfoCard } from './InfoCard';
 interface RedemptionCardProps {
   targetName?: string;
   targetDate?: string;
+  avatar?: string;
 }
 
-// Gamification Levels
+// Gamification Levels (Fallback)
 const LEVELS = [
   { days: 365, title: '初级牛马', icon: '🧹', item: '破旧扫帚' },
   { days: 180, title: '资深社畜', icon: '🛡️', item: '木制锅盖' },
@@ -16,7 +17,54 @@ const LEVELS = [
   { days: 0,   title: '完全自由', icon: '🕊️', item: '自由之翼' },
 ];
 
-export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targetDate }) => {
+export const getEquipment = (targetName: string | undefined, daysLeft: number) => {
+  if (!targetName) return LEVELS[0];
+
+  // Custom Keyword Matching for Specific "Gear"
+  const name = targetName.toLowerCase();
+  let specialIcon = '';
+  let specialItem = '';
+
+  if (name.includes('车') || name.includes('car') || name.includes('drive')) {
+    specialIcon = '🏎️';
+    specialItem = '极速座驾';
+  } else if (name.includes('房') || name.includes('house') || name.includes('home')) {
+    specialIcon = '🏠';
+    specialItem = '豪华别墅';
+  } else if (name.includes('游') || name.includes('travel') || name.includes('trip') || name.includes('玩')) {
+    specialIcon = '✈️';
+    specialItem = '环球机票';
+  } else if (name.includes('离职') || name.includes('quit') || name.includes('fire') || name.includes('跑路')) {
+    specialIcon = '📜';
+    specialItem = '离职证明';
+  } else if (name.includes('钱') || name.includes('富') || name.includes('rich')) {
+    specialIcon = '💰';
+    specialItem = '暴富金砖';
+  }
+
+  // Determine Level logic based on Time
+  let currentLevel = LEVELS[0];
+  for (let i = 0; i < LEVELS.length; i++) {
+     if (daysLeft <= LEVELS[i].days) {
+         currentLevel = LEVELS[i];
+     }
+  }
+
+  // If specific keyword found, override icon/item but keep "level title" logic roughly?
+  // Or just return the special item if daysLeft is close enough?
+  // Let's mix: 
+  if (specialIcon) {
+    return {
+      ...currentLevel,
+      icon: specialIcon,
+      item: specialItem
+    };
+  }
+
+  return currentLevel;
+};
+
+export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targetDate, avatar }) => {
   if (!targetName || !targetDate) {
     return (
       <InfoCard title="牛马救赎 (未设定)" bgColor="bg-gray-200" icon={<span>🔒</span>}>
@@ -33,71 +81,69 @@ export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targ
   const diffTime = target.getTime() - now.getTime();
   const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  // Find current level based on days left
-  // Logic: The closer the date, the better the item.
-  // We find the first level threshold that is SMALLER or EQUAL to daysLeft? 
-  // Actually, we want the highest tier achieved.
-  // If daysLeft > 365, level 0.
-  // If daysLeft <= 7, level is near max.
+  const equipment = getEquipment(targetName, daysLeft);
+  const isCompleted = daysLeft <= 0;
   
-  let currentLevel = LEVELS[0]; // Default worst
-  
-  // Find the BEST item unlocked (meaning daysLeft is LESS than the requirement)
-  // Sorted from High Days to Low Days in definition.
-  // We want the smallest 'days' value that is still >= daysLeft? No.
-  
-  // Let's iterate.
-  // If daysLeft is 400. > 365. Base level.
-  // If daysLeft is 100. < 180. Unlocked 'Senior'.
-  // If daysLeft is 5. < 7. Unlocked 'God'.
-  
-  for (let i = 0; i < LEVELS.length; i++) {
-     if (daysLeft <= LEVELS[i].days) {
-         currentLevel = LEVELS[i];
-     }
-  }
-  
-  // Progress for bar (inverse log scale or just simple linear clamp for visuals?)
-  // Let's make it a progress towards 0.
-  // Assume start date was... unknown. Let's just visualize "Closeness".
-  // Let's cap visual progress at 365 days = 0%, 0 days = 100%.
+  // Progress Bar
   const visualProgress = Math.max(0, Math.min(100, ((365 - daysLeft) / 365) * 100));
 
   return (
     <InfoCard 
       title={`救赎: ${targetName}`} 
       bgColor="bg-[#2ec4b6]" 
-      icon={<span className="animate-bounce-sm">{currentLevel.icon}</span>}
+      icon={null} // Custom icon layout
       className="border-2 border-black"
     >
-      <div className="mt-2 text-white/90">
-         <div className="flex justify-between items-end mb-2">
-            <div className="flex flex-col">
-                <span className="text-xs font-bold text-black/60">当前装备</span>
-                <span className="text-lg font-black text-black font-hand">{currentLevel.item}</span>
+      <div className="absolute top-4 right-4 text-3xl animate-bounce-sm z-10">
+        {equipment.icon}
+      </div>
+
+      <div className="flex gap-4 mt-2 items-end">
+        {/* Avatar Section */}
+        <div className="relative shrink-0">
+          <div className="w-20 h-20 rounded-full border-4 border-black overflow-hidden bg-white shadow-comic-sm">
+             {avatar ? (
+                <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+             ) : (
+                <div className="w-full h-full flex items-center justify-center text-4xl">🐂</div>
+             )}
+          </div>
+          
+          {/* Equipment Overlay Logic */}
+          {isCompleted ? (
+             <div className="absolute -bottom-2 -right-2 text-4xl filter drop-shadow-md transform -rotate-12 animate-pulse" title="已装备">
+               {equipment.icon}
+             </div>
+          ) : (
+             <div className="absolute -top-4 -right-6 bg-white border-2 border-black px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap animate-bounce-sm">
+                想要 {equipment.icon}...
+                <div className="absolute bottom-[-6px] left-2 w-3 h-3 bg-white border-b-2 border-r-2 border-black transform rotate-45"></div>
+             </div>
+          )}
+        </div>
+
+        {/* Text Info */}
+        <div className="flex-1 text-white/90">
+             <div className="flex flex-col items-end">
+                <span className="text-4xl font-black font-mono text-black leading-none">{daysLeft > 0 ? daysLeft : 0}</span>
+                <span className="text-sm font-bold text-black mt-1">天后装备: {equipment.item}</span>
             </div>
-            <div className="text-right">
-                <span className="text-4xl font-black font-mono text-black">{daysLeft}</span>
-                <span className="text-sm font-bold text-black ml-1">天</span>
-            </div>
-         </div>
-         
-         {/* RPG Progress Bar */}
-         <div className="w-full h-5 bg-black/20 border-2 border-black rounded-lg overflow-hidden relative">
-            <div 
-              className="h-full bg-[#ffbf69] border-r-2 border-black relative"
-              style={{ width: `${visualProgress}%` }}
-            >
-                {/* Glint effect */}
-                <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50"></div>
-            </div>
-         </div>
-         
-         <div className="mt-2 flex justify-between text-xs font-bold text-black/60">
-             <span>苦难</span>
-             <span>里程碑等级: {currentLevel.title}</span>
-             <span>自由</span>
-         </div>
+        </div>
+      </div>
+      
+      {/* RPG Progress Bar */}
+      <div className="w-full h-6 bg-black/20 border-2 border-black rounded-lg overflow-hidden relative mt-3">
+        <div 
+          className="h-full bg-[#ffbf69] border-r-2 border-black relative transition-all duration-1000"
+          style={{ width: `${visualProgress}%` }}
+        >
+            <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50"></div>
+            {/* Tiny markers */}
+            <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-10"></div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-black/50">
+           {isCompleted ? '已达成成就' : `当前等级: ${equipment.title}`}
+        </div>
       </div>
     </InfoCard>
   );

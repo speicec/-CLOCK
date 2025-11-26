@@ -422,7 +422,13 @@ function App() {
       case 'holidays':
         return <HolidayCard endTime={settings.endTime} />;
       case 'redemption':
-        return <RedemptionCard targetName={settings.targetName} targetDate={settings.targetDate} />;
+        return (
+          <RedemptionCard 
+            targetName={settings.targetName} 
+            targetDate={settings.targetDate} 
+            avatar={settings.avatar}
+          />
+        );
       case 'longPain':
         return (
           <InfoCard 
@@ -496,8 +502,12 @@ function App() {
       <nav className="sticky top-0 z-40 bg-[#fcfbf7]/90 backdrop-blur-md border-b-4 border-black py-3">
         <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-2xl border-2 border-white shadow-sm">
-               🐂
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-black shadow-sm overflow-hidden bg-white">
+               {settings.avatar ? (
+                 <img src={settings.avatar} alt="Me" className="w-full h-full object-cover" />
+               ) : (
+                 '🐂'
+               )}
             </div>
             <h1 className="font-black text-2xl tracking-tighter font-hand">牛马时钟</h1>
           </div>
@@ -583,6 +593,9 @@ function App() {
          status={status}
          timeRemaining={earnings.timeRemaining}
          earned={earnings.earnedToday.toFixed(2)}
+         avatar={settings.avatar}
+         targetName={settings.targetName}
+         targetDate={settings.targetDate}
       />
     </div>
   );

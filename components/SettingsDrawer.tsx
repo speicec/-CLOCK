@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UserSettings } from '../types';
 
 interface SettingsDrawerProps {
@@ -10,6 +10,7 @@ interface SettingsDrawerProps {
 
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -17,6 +18,28 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
       ...prev,
       [name]: (name.includes('Time') || name.includes('Date') || name === 'currencySymbol' || name === 'targetName') ? value : Number(value)
     }));
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      alert("图片太大了！请上传 500KB 以下的图片（LocalStorage 空间有限）。");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setLocalSettings(prev => ({ ...prev, avatar: base64String }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearAvatar = () => {
+    setLocalSettings(prev => ({ ...prev, avatar: undefined }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (!isOpen) return null;
@@ -40,6 +63,43 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
         
         <div className="space-y-6 font-sans pb-10">
           
+          {/* Avatar Section */}
+          <div className="bg-white p-4 border-2 border-black shadow-comic-sm rounded-xl text-center">
+             <h3 className="font-black text-lg mb-3">📸 你的尊容</h3>
+             <div className="flex flex-col items-center gap-4">
+                <div className="w-24 h-24 rounded-full border-4 border-black overflow-hidden bg-gray-100 flex items-center justify-center relative shadow-sm">
+                   {localSettings.avatar ? (
+                     <img src={localSettings.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                   ) : (
+                     <span className="text-4xl">🐂</span>
+                   )}
+                </div>
+                <div className="flex gap-2">
+                   <button 
+                     onClick={() => fileInputRef.current?.click()}
+                     className="px-3 py-1 bg-black text-white text-sm font-bold rounded hover:bg-gray-800 transition-colors"
+                   >
+                     上传头像
+                   </button>
+                   {localSettings.avatar && (
+                     <button 
+                       onClick={clearAvatar}
+                       className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded hover:bg-red-600 transition-colors"
+                     >
+                       删除
+                     </button>
+                   )}
+                   <input 
+                     type="file" 
+                     ref={fileInputRef} 
+                     onChange={handleAvatarUpload} 
+                     accept="image/*" 
+                     className="hidden" 
+                   />
+                </div>
+             </div>
+          </div>
+
           <div className="bg-yellow-100 p-4 border-2 border-black shadow-comic-sm rounded-xl">
              <h3 className="font-black text-lg mb-3">💰 薪资待遇</h3>
              <div className="space-y-4">
@@ -139,12 +199,12 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
             <h3 className="font-black text-lg mb-3">⚔️ 牛马救赎 (里程碑)</h3>
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>目标名称 (如: 提桶跑路)</label>
+                <label className={labelClass}>目标名称 (如: 买车/买房/离职)</label>
                 <input
                   type="text"
                   name="targetName"
                   value={localSettings.targetName || ''}
-                  placeholder="给自己一个盼头"
+                  placeholder="输入具体目标有惊喜"
                   onChange={handleChange}
                   className={inputClass}
                 />

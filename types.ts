@@ -9,6 +9,7 @@ export interface UserSettings {
   retirementAge: number; // 60
   targetName?: string; // "Quit Job"
   targetDate?: string; // "2025-12-31"
+  avatar?: string; // Base64 string of user avatar
 }
 
 export interface EarningsData {

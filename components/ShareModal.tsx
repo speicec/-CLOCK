@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
+import { getEquipment } from './RedemptionCard';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -7,11 +8,25 @@ interface ShareModalProps {
   status: string;
   timeRemaining: string;
   earned: string;
+  avatar?: string;
+  targetName?: string;
+  targetDate?: string;
 }
 
-export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status, timeRemaining, earned }) => {
+export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status, timeRemaining, earned, avatar, targetName, targetDate }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [equipment, setEquipment] = useState<any>(null);
+
+  useEffect(() => {
+    if (targetName && targetDate) {
+      const now = new Date();
+      const target = new Date(targetDate);
+      const diffTime = target.getTime() - now.getTime();
+      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setEquipment(getEquipment(targetName, daysLeft));
+    }
+  }, [targetName, targetDate]);
 
   if (!isOpen) return null;
 
@@ -20,18 +35,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status,
     setIsGenerating(true);
     
     try {
-      // Small delay to ensure rendering
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300)); // Ensure images load
       
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null, // Transparent bg to capture the card's color
-        scale: 2, // Retine quality
+        backgroundColor: null,
+        scale: 2,
         useCORS: true,
+        allowTaint: true, // Needed for some local blobs if not CORS
       });
 
       const image = canvas.toDataURL('image/png');
       
-      // Create download link
       const link = document.createElement('a');
       link.href = image;
       link.download = `niu-ma-clock-${Date.now()}.png`;
@@ -63,7 +77,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status,
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}></div>
       
-      <div className="relative bg-[#fcfbf7] w-full max-w-sm rounded-xl shadow-2xl border-4 border-black p-6 animate-bounce-sm">
+      <div className="relative bg-[#fcfbf7] w-full max-w-sm rounded-xl shadow-2xl border-4 border-black p-6 animate-bounce-sm max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-black font-hand">一键社死</h3>
             <button onClick={onClose} className="text-2xl hover:scale-110">✖️</button>
@@ -74,7 +88,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status,
           ref={cardRef} 
           className="bg-[#ffe66d] p-6 rounded-lg border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-6 relative overflow-hidden"
         >
-            {/* Watermark/Pattern */}
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-black to-transparent bg-[length:10px_10px]"></div>
             
             <div className="relative z-10 flex flex-col items-center text-center">
@@ -82,8 +95,30 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, status,
                    {getTitle()}
                 </div>
 
-                <div className="text-6xl mb-2 animate-shake">{getEmoji()}</div>
+                {/* Avatar / Emoji Display */}
+                <div className="relative mb-4">
+                  <div className="w-28 h-28 rounded-full border-4 border-black overflow-hidden bg-white flex items-center justify-center shadow-md relative z-10">
+                    {avatar ? (
+                      <img src={avatar} alt="Me" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-6xl animate-shake">{getEmoji()}</div>
+                    )}
+                  </div>
+                  
+                  {/* Equipment Badge */}
+                  {equipment && (
+                    <div className="absolute -bottom-2 -right-4 z-20 transform -rotate-12 bg-white rounded-full border-2 border-black w-12 h-12 flex items-center justify-center text-2xl shadow-sm">
+                      {equipment.icon}
+                    </div>
+                  )}
+                </div>
                 
+                {equipment && (
+                  <div className="bg-[#2ec4b6] text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-black mb-3 -rotate-1">
+                     正在攻略: {equipment.item}
+                  </div>
+                )}
+
                 <div className="bg-white/80 border-2 border-black p-3 w-full mb-3 rounded-lg backdrop-blur-sm">
                     <p className="text-xs font-bold text-gray-500 mb-1">当前状态</p>
                     <p className="text-2xl font-black font-mono text-black">{status}</p>
