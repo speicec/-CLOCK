@@ -12,6 +12,7 @@ import { HolidayCard } from './components/HolidayCard';
 import { RedemptionCard } from './components/RedemptionCard';
 import { ShareModal } from './components/ShareModal';
 import { ClockInCard } from './components/ClockInCard';
+import { SlackingWidget } from './components/SlackingWidget';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -38,12 +39,17 @@ function App() {
   const [cardOrder, setCardOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('niuMaCardOrder');
     // Migration: ensure new cards exist for old users
-    const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'holidays', 'redemption', 'longPain', 'quote'];
+    const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'slacking', 'holidays', 'redemption', 'longPain', 'quote'];
     if (saved) {
       const parsed = JSON.parse(saved);
       // Merge unique items from defaultOrder that are missing in parsed
       const missing = defaultOrder.filter(item => !parsed.includes(item));
-      return [...missing, ...parsed]; // Add new cards to top usually, or stick to bottom
+      // Add missing items to a logical place (e.g. after 'earnings') or end
+      if (missing.length > 0) {
+        // Simple strategy: append new cards
+        return [...parsed, ...missing];
+      }
+      return parsed;
     }
     return defaultOrder;
   });
@@ -446,6 +452,8 @@ function App() {
             </div>
           </InfoCard>
         );
+      case 'slacking':
+        return <SlackingWidget />;
       case 'quote':
         return (
           <div className="bg-white border-2 border-black rounded-xl p-6 shadow-comic relative mt-2 group-hover:translate-y-0 transition-transform">
