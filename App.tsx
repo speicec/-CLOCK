@@ -2,18 +2,20 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { InfoCard } from './components/InfoCard';
 import { generateWorkerQuote } from './services/geminiService';
-import { UserSettings, EarningsData, WorkStatus, WorkLog } from './types';
+import { UserSettings, EarningsData, WorkStatus, WorkLog, RandomEvent } from './types';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem } from './components/SortableItem';
 import { LunarCalendarModal } from './components/LunarCalendarModal';
 import { FocusMode } from './components/FocusMode';
-import { HolidayCard } from './components/HolidayCard';
+import { MultiGoalCard } from './components/MultiGoalCard';
 import { RedemptionCard } from './components/RedemptionCard';
 import { ShareModal } from './components/ShareModal';
 import { ClockInCard } from './components/ClockInCard';
 import { SlackingWidget } from './components/SlackingWidget';
 import { WorkLogStatsModal } from './components/WorkLogStatsModal';
+import { RandomEventModal } from './components/RandomEventModal';
+import { checkDailyRandomEvent } from './utils/eventUtils';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -27,6 +29,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   retirementAge: 60,
   targetName: '',
   targetDate: '',
+  salaryDay: 15, // Default salary day
 };
 
 const QUOTE_REFRESH_INTERVAL = 30 * 60 * 1000; 
@@ -39,15 +42,17 @@ function App() {
 
   const [cardOrder, setCardOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('niuMaCardOrder');
-    // Migration: ensure new cards exist for old users
-    const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'slacking', 'holidays', 'redemption', 'longPain', 'quote'];
+    // Updated default order with 'multiGoal' instead of 'holidays'
+    const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'slacking', 'multiGoal', 'redemption', 'longPain', 'quote'];
     if (saved) {
-      const parsed = JSON.parse(saved);
+      let parsed = JSON.parse(saved);
+      // Migration: Replace 'holidays' with 'multiGoal' if present
+      if (parsed.includes('holidays')) {
+         parsed = parsed.map((id: string) => id === 'holidays' ? 'multiGoal' : id);
+      }
       // Merge unique items from defaultOrder that are missing in parsed
       const missing = defaultOrder.filter(item => !parsed.includes(item));
-      // Add missing items to a logical place (e.g. after 'earnings') or end
       if (missing.length > 0) {
-        // Simple strategy: append new cards
         return [...parsed, ...missing];
       }
       return parsed;
@@ -64,6 +69,7 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isLogStatsOpen, setIsLogStatsOpen] = useState(false);
+  const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
   
   // Focus Mode State
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -89,11 +95,11 @@ function App() {
 
   const lastQuoteTimeRef = useRef<number>(0);
 
-  // DnD Sensors with activation constraints to allow clicking buttons (like refresh quote)
+  // DnD Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
+        distance: 8, 
       },
     }),
     useSensor(KeyboardSensor, {
@@ -101,16 +107,18 @@ function App() {
     })
   );
 
-  // Detect Orientation and Fullscreen for Focus Mode
+  // Detect Orientation/Fullscreen & Random Event on Mount
   useEffect(() => {
+    // Check for random event
+    const event = checkDailyRandomEvent();
+    if (event) {
+      // Delay slightly for dramatic effect
+      setTimeout(() => setRandomEvent(event), 1000);
+    }
+
     const checkFocusCondition = () => {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
-      // On mobile, isLandscape is often enough. On desktop, check for fullscreen API.
       const isFullscreen = !!document.fullscreenElement;
-      
-      // We trigger focus mode if:
-      // 1. It is Fullscreen (Desktop or Mobile via API)
-      // 2. OR it is Mobile Landscape (width > height and touch capable roughly)
       const isMobileLandscape = isLandscape && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
       
       if (isFullscreen || isMobileLandscape) {
@@ -122,7 +130,6 @@ function App() {
 
     window.addEventListener('resize', checkFocusCondition);
     document.addEventListener('fullscreenchange', checkFocusCondition);
-    // Initial check
     checkFocusCondition();
 
     return () => {
@@ -145,33 +152,28 @@ function App() {
     }
   };
 
-  // Save settings to local storage
   const handleSaveSettings = (newSettings: UserSettings) => {
     setSettings(newSettings);
     localStorage.setItem('niuMaSettings_v2', JSON.stringify(newSettings));
     lastQuoteTimeRef.current = 0; 
   };
 
-  // Save logs
   useEffect(() => {
     localStorage.setItem('niuMaWorkLogs', JSON.stringify(workLogs));
   }, [workLogs]);
 
-  // Handle Clock In
   const handleClockIn = () => {
     const now = new Date();
     const todayStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
     const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
     setWorkLogs(prev => {
-      // Check if already clocked in today
       const exists = prev.find(l => l.date === todayStr);
       if (exists) return prev;
       return [...prev, { date: todayStr, startTime: timeStr }];
     });
   };
 
-  // Handle Clock Out
   const handleClockOut = () => {
     const now = new Date();
     const todayStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
@@ -187,7 +189,6 @@ function App() {
     });
   };
 
-  // Calculate Logic
   const calculateEarnings = useCallback(() => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -195,7 +196,6 @@ function App() {
     const start = new Date(`${todayStr}T${settings.startTime}:00`);
     const end = new Date(`${todayStr}T${settings.endTime}:00`);
     
-    // Per second calculation
     const dailyPay = settings.monthlySalary / settings.workDaysPerMonth;
     const hourlyPay = dailyPay / settings.dailyHours;
     const perSecond = hourlyPay / 3600;
@@ -220,9 +220,8 @@ function App() {
       if (now > end) {
         currentStatus = WorkStatus.OVERTIME;
         isOvertime = true;
-        progressPercentage = 100; // Cap at 100 for the main bar, maybe show overflow elsewhere
+        progressPercentage = 100;
         timeRemainingStr = "自由延期";
-        // Calculate overtime pay if needed, for now just continue standard rate or mark as overtime
         earnedToday = diffSeconds * perSecond; 
       } else {
         currentStatus = WorkStatus.WORKING;
@@ -247,7 +246,6 @@ function App() {
     return currentStatus;
   }, [settings]);
 
-  // Calculate Retirement Logic
   useEffect(() => {
     if (!settings.birthDate) return;
     
@@ -275,25 +273,16 @@ function App() {
     }
   }, [settings, currentTime]);
 
-  // Main Timer Loop
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
       const newStatus = calculateEarnings();
       setStatus(newStatus);
-    }, 1000); // Update every second
+    }, 1000); 
 
-    const moneyTimer = setInterval(() => {
-        // Just triggering a re-render for smooth money count if we wanted ms precision
-    }, 100);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(moneyTimer);
-    };
+    return () => clearInterval(timer);
   }, [calculateEarnings]);
 
-  // AI Quote Fetcher
   const fetchQuote = useCallback(async (currentStatus: WorkStatus) => {
     const now = Date.now();
     if (now - lastQuoteTimeRef.current < QUOTE_REFRESH_INTERVAL && lastQuoteTimeRef.current !== 0) {
@@ -321,7 +310,6 @@ function App() {
     fetchQuote(status);
   };
 
-  // Trigger Fullscreen for Focus Mode
   const enterFocusMode = async () => {
     try {
         if (!document.fullscreenElement) {
@@ -337,7 +325,6 @@ function App() {
         if (document.fullscreenElement) {
             await document.exitFullscreen();
         }
-        // Force state update if logic relies on resize event that hasn't fired yet
         setIsFocusMode(false);
     } catch (err) {
         console.error("Error attempting to exit full-screen mode:", err);
@@ -352,7 +339,6 @@ function App() {
   
   const formattedSeconds = currentTime.getSeconds().toString().padStart(2, '0');
 
-  // Render Map
   const renderCard = (id: string) => {
     switch(id) {
       case 'clockIn':
@@ -422,8 +408,9 @@ function App() {
             </div>
           </InfoCard>
         );
-      case 'holidays':
-        return <HolidayCard endTime={settings.endTime} />;
+      case 'multiGoal':
+        // Replaced HolidayCard
+        return <MultiGoalCard endTime={settings.endTime} salaryDay={settings.salaryDay || 15} birthDate={settings.birthDate} />;
       case 'redemption':
         return (
           <RedemptionCard 
@@ -477,11 +464,10 @@ function App() {
              <div className="flex justify-center mt-4 pointer-events-auto">
                 <button 
                   onClick={(e) => {
-                    // Prevent drag
                     e.stopPropagation();
                     handleRefreshQuote();
                   }}
-                  onPointerDown={(e) => e.stopPropagation()} // Stop DnD start
+                  onPointerDown={(e) => e.stopPropagation()} 
                   disabled={isQuoteLoading}
                   className="text-sm font-bold text-gray-500 hover:text-black underline decoration-2 underline-offset-4 decoration-wavy decoration-red-400 cursor-pointer relative z-30"
                 >
@@ -498,6 +484,9 @@ function App() {
   return (
     <div className="min-h-screen w-full font-sans pb-12">
       
+      {/* Random Event Modal */}
+      <RandomEventModal event={randomEvent} onClose={() => setRandomEvent(null)} />
+
       {/* Focus Mode Overlay */}
       {isFocusMode && <FocusMode onExit={exitFocusMode} />}
 
