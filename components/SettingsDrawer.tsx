@@ -139,6 +139,19 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose,
                     />
                   </div>
                 </div>
+                <div>
+                    <label className={labelClass}>每月发薪日 (几号)</label>
+                    <input
+                      type="number"
+                      name="salaryDay"
+                      value={localSettings.salaryDay}
+                      onChange={handleChange}
+                      min="1"
+                      max="31"
+                      className={inputClass}
+                      placeholder="例如: 15"
+                    />
+                  </div>
              </div>
           </div>
 
