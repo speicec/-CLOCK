@@ -1,3 +1,4 @@
+
 export interface UserSettings {
   monthlySalary: number;
   workDaysPerMonth: number; // Usually 21.75
@@ -11,6 +12,7 @@ export interface UserSettings {
   targetDate?: string; // "2025-12-31"
   avatar?: string; // Base64 string of user avatar
   salaryDay: number; // Day of month (1-31)
+  theme?: string; // 'default', 'cyberpunk', etc.
 }
 
 export interface EarningsData {

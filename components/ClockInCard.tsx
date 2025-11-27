@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { InfoCard } from './InfoCard';
 import confetti from 'canvas-confetti';
@@ -11,19 +12,17 @@ interface ClockInCardProps {
 }
 
 export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClockOut, onShowStats }) => {
-  // Get today's status
   const todayStr = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
   const todayLog = logs.find(log => log.date === todayStr);
   const totalDays = logs.length;
 
   const handlePress = (type: 'in' | 'out') => {
-    // Visual reward
     if (type === 'in') {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#ffde59', '#000000', '#ffffff'], // Yellow/Black/White theme
+        colors: ['#ffde59', '#000000', '#ffffff'],
       });
       onClockIn();
     } else {
@@ -31,7 +30,7 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
         particleCount: 150,
         spread: 100,
         origin: { y: 0.6 },
-        colors: ['#5cff88', '#ffffff', '#000000'], // Green/White/Black theme
+        colors: ['#5cff88', '#ffffff', '#000000'],
         shapes: ['circle', 'square'],
       });
       onClockOut();
@@ -43,7 +42,7 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
     buttonContent = (
       <button 
         onClick={() => handlePress('in')}
-        className="w-full py-4 bg-[#ffde59] text-black font-black text-xl border-2 border-black rounded-xl shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all hover:brightness-105"
+        className="w-full py-4 bg-accent-yellow text-app-text font-black text-xl border-2 border-app-border rounded-xl shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all hover:brightness-105"
       >
         ☕ 打卡上班
       </button>
@@ -52,14 +51,14 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
     buttonContent = (
       <button 
         onClick={() => handlePress('out')}
-        className="w-full py-4 bg-[#5cff88] text-black font-black text-xl border-2 border-black rounded-xl shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all hover:brightness-105"
+        className="w-full py-4 bg-accent-green text-app-text font-black text-xl border-2 border-app-border rounded-xl shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all hover:brightness-105"
       >
         🏃‍♂️ 打卡下班
       </button>
     );
   } else {
     buttonContent = (
-      <div className="w-full py-4 bg-gray-200 text-gray-500 font-bold text-xl border-2 border-gray-400 rounded-xl flex flex-col items-center justify-center cursor-not-allowed">
+      <div className="w-full py-4 bg-accent-gray text-gray-500 font-bold text-xl border-2 border-gray-400 rounded-xl flex flex-col items-center justify-center cursor-not-allowed">
         <span>✅ 今日已搬完</span>
         <span className="text-xs font-normal mt-1">工时: {todayLog.startTime} - {todayLog.endTime}</span>
       </div>
@@ -69,11 +68,11 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
   return (
     <InfoCard 
       title="每日打卡" 
-      bgColor="bg-white" 
+      bgColor="bg-card-bg" 
       icon={
         <button 
            onClick={(e) => { e.stopPropagation(); onShowStats(); }}
-           className="text-xl hover:scale-110 transition-transform active:scale-90"
+           className="text-xl hover:scale-110 transition-transform active:scale-90 text-app-text"
            title="查看血汗史"
         >
            📈
@@ -84,8 +83,8 @@ export const ClockInCard: React.FC<ClockInCardProps> = ({ logs, onClockIn, onClo
         <div className="mb-4 text-center">
            <span className="text-sm font-bold text-gray-500">累计搬砖</span>
            <div className="flex items-baseline justify-center gap-1">
-             <span className="text-4xl font-black font-mono text-black">{totalDays}</span>
-             <span className="text-base font-bold text-black">天</span>
+             <span className="text-4xl font-black font-mono text-app-text">{totalDays}</span>
+             <span className="text-base font-bold text-app-text">天</span>
            </div>
         </div>
         

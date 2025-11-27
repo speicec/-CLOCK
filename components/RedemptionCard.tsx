@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { InfoCard } from './InfoCard';
 
@@ -7,7 +8,6 @@ interface RedemptionCardProps {
   avatar?: string;
 }
 
-// Gamification Levels (Fallback)
 const LEVELS = [
   { days: 365, title: '初级牛马', icon: '🧹', item: '破旧扫帚' },
   { days: 180, title: '资深社畜', icon: '🛡️', item: '木制锅盖' },
@@ -20,7 +20,6 @@ const LEVELS = [
 export const getEquipment = (targetName: string | undefined, daysLeft: number) => {
   if (!targetName) return LEVELS[0];
 
-  // Custom Keyword Matching for Specific "Gear"
   const name = targetName.toLowerCase();
   let specialIcon = '';
   let specialItem = '';
@@ -42,7 +41,6 @@ export const getEquipment = (targetName: string | undefined, daysLeft: number) =
     specialItem = '暴富金砖';
   }
 
-  // Determine Level logic based on Time
   let currentLevel = LEVELS[0];
   for (let i = 0; i < LEVELS.length; i++) {
      if (daysLeft <= LEVELS[i].days) {
@@ -50,9 +48,6 @@ export const getEquipment = (targetName: string | undefined, daysLeft: number) =
      }
   }
 
-  // If specific keyword found, override icon/item but keep "level title" logic roughly?
-  // Or just return the special item if daysLeft is close enough?
-  // Let's mix: 
   if (specialIcon) {
     return {
       ...currentLevel,
@@ -67,7 +62,7 @@ export const getEquipment = (targetName: string | undefined, daysLeft: number) =
 export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targetDate, avatar }) => {
   if (!targetName || !targetDate) {
     return (
-      <InfoCard title="牛马救赎 (未设定)" bgColor="bg-gray-200" icon={<span>🔒</span>}>
+      <InfoCard title="牛马救赎 (未设定)" bgColor="bg-accent-gray" icon={<span>🔒</span>}>
          <div className="text-center py-4">
             <p className="text-sm font-bold text-gray-500 mb-2">设定一个目标日期，解锁你的专属装备</p>
             <div className="text-xs text-gray-400">请在设置中添加目标</div>
@@ -84,24 +79,22 @@ export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targ
   const equipment = getEquipment(targetName, daysLeft);
   const isCompleted = daysLeft <= 0;
   
-  // Progress Bar
   const visualProgress = Math.max(0, Math.min(100, ((365 - daysLeft) / 365) * 100));
 
   return (
     <InfoCard 
       title={`救赎: ${targetName}`} 
-      bgColor="bg-[#2ec4b6]" 
-      icon={null} // Custom icon layout
-      className="border-2 border-black"
+      bgColor="bg-accent-teal" 
+      icon={null} 
+      className="border-2 border-app-border"
     >
       <div className="absolute top-4 right-4 text-3xl animate-bounce-sm z-10">
         {equipment.icon}
       </div>
 
       <div className="flex gap-4 mt-2 items-end">
-        {/* Avatar Section */}
         <div className="relative shrink-0">
-          <div className="w-20 h-20 rounded-full border-4 border-black overflow-hidden bg-white shadow-comic-sm">
+          <div className="w-20 h-20 rounded-full border-4 border-app-border overflow-hidden bg-white shadow-comic-sm">
              {avatar ? (
                 <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
              ) : (
@@ -109,36 +102,32 @@ export const RedemptionCard: React.FC<RedemptionCardProps> = ({ targetName, targ
              )}
           </div>
           
-          {/* Equipment Overlay Logic */}
           {isCompleted ? (
              <div className="absolute -bottom-2 -right-2 text-4xl filter drop-shadow-md transform -rotate-12 animate-pulse" title="已装备">
                {equipment.icon}
              </div>
           ) : (
-             <div className="absolute -top-4 -right-6 bg-white border-2 border-black px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap animate-bounce-sm">
+             <div className="absolute -top-4 -right-6 bg-card-bg border-2 border-app-border px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap animate-bounce-sm text-app-text">
                 想要 {equipment.icon}...
-                <div className="absolute bottom-[-6px] left-2 w-3 h-3 bg-white border-b-2 border-r-2 border-black transform rotate-45"></div>
+                <div className="absolute bottom-[-6px] left-2 w-3 h-3 bg-card-bg border-b-2 border-r-2 border-app-border transform rotate-45"></div>
              </div>
           )}
         </div>
 
-        {/* Text Info */}
-        <div className="flex-1 text-white/90">
+        <div className="flex-1 text-app-text">
              <div className="flex flex-col items-end">
-                <span className="text-4xl font-black font-mono text-black leading-none">{daysLeft > 0 ? daysLeft : 0}</span>
-                <span className="text-sm font-bold text-black mt-1">天后装备: {equipment.item}</span>
+                <span className="text-4xl font-black font-mono leading-none">{daysLeft > 0 ? daysLeft : 0}</span>
+                <span className="text-sm font-bold mt-1">天后装备: {equipment.item}</span>
             </div>
         </div>
       </div>
       
-      {/* RPG Progress Bar */}
-      <div className="w-full h-6 bg-black/20 border-2 border-black rounded-lg overflow-hidden relative mt-3">
+      <div className="w-full h-6 bg-black/20 border-2 border-app-border rounded-lg overflow-hidden relative mt-3">
         <div 
-          className="h-full bg-[#ffbf69] border-r-2 border-black relative transition-all duration-1000"
+          className="h-full bg-accent-orange border-r-2 border-app-border relative transition-all duration-1000"
           style={{ width: `${visualProgress}%` }}
         >
             <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50"></div>
-            {/* Tiny markers */}
             <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-10"></div>
         </div>
         <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-black/50">

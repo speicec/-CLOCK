@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { InfoCard } from './components/InfoCard';
@@ -18,6 +19,7 @@ import { RandomEventModal } from './components/RandomEventModal';
 import { triggerRandomEvent } from './utils/eventUtils';
 import { MoneyRunGame } from './components/MoneyRunGame';
 import { TicketCard } from './components/TicketCard';
+import { THEMES } from './themes';
 import confetti from 'canvas-confetti';
 
 // Default Settings
@@ -32,7 +34,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   retirementAge: 60,
   targetName: '',
   targetDate: '',
-  salaryDay: 15, // Default salary day
+  salaryDay: 15,
+  theme: 'default'
 };
 
 const QUOTE_REFRESH_INTERVAL = 30 * 60 * 1000; 
@@ -110,6 +113,7 @@ function App() {
 
   const lastQuoteTimeRef = useRef<number>(0);
   const rainRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -122,9 +126,21 @@ function App() {
     })
   );
 
+  // Apply Theme Variables
+  useEffect(() => {
+    const themeKey = settings.theme || 'default';
+    const theme = THEMES[themeKey] || THEMES['default'];
+    
+    // Inject CSS variables into root element
+    if (rootRef.current) {
+      Object.entries(theme.colors).forEach(([key, value]) => {
+        rootRef.current?.style.setProperty(key, value as string);
+      });
+    }
+  }, [settings.theme]);
+
   // Initialize Event and Check Breakdown Mode
   useEffect(() => {
-    // Check if in breakdown mode
     const now = Date.now();
     if (now < breakdownUntil) {
       setIsBreakdownMode(true);
@@ -136,10 +152,8 @@ function App() {
       }
     }
 
-    // Trigger Random Event on every mount
     const event = triggerRandomEvent();
     
-    // Process Event for Combo
     let newCombo = consecutiveBadEvents;
     if (event.type === 'bad') {
       newCombo += 1;
@@ -150,32 +164,23 @@ function App() {
     setConsecutiveBadEvents(newCombo);
     localStorage.setItem('niuMaBadCombo', newCombo.toString());
 
-    // Check for Critical Hit (3 in a row)
     if (newCombo >= 3) {
-      // Trigger Breakdown
       const breakdownTime = now + 60 * 60 * 1000; // 1 hour
       setBreakdownUntil(breakdownTime);
       localStorage.setItem('niuMaBreakdownUntil', breakdownTime.toString());
-      
-      // Reset Combo
       setConsecutiveBadEvents(0);
       localStorage.setItem('niuMaBadCombo', '0');
 
-      // Visual Trigger
       setTimeout(() => {
-        setRandomEvent(null); // Clear normal event modal if needed
+        setRandomEvent(null);
         setTriggerLightning(true);
         setIsBreakdownMode(true);
-        
-        // Hide lightning after animation
         setTimeout(() => setTriggerLightning(false), 600);
       }, 500);
     } else {
-       // Show normal event after a short delay
        setTimeout(() => setRandomEvent(event), 800);
     }
 
-    // Setup Focus Mode Check
     const checkFocusCondition = () => {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       const isFullscreen = !!document.fullscreenElement;
@@ -436,7 +441,6 @@ function App() {
   const handleEarningsPressStart = (e: React.PointerEvent) => {
     setIsShaking(true);
     longPressTimerRef.current = window.setTimeout(() => {
-      // Trigger Game
       setIsShaking(false);
       confetti({
         particleCount: 150,
@@ -445,7 +449,7 @@ function App() {
         colors: ['#FFD700', '#FFA500', '#FFFFFF']
       });
       setIsGameMode(true);
-    }, 1200); // 1.2s hold
+    }, 1200);
   };
 
   const handleEarningsPressEnd = () => {
@@ -464,7 +468,6 @@ function App() {
         clearTimeout(avatarClickTimerRef.current);
     }
 
-    // Reset if user stops clicking for 2 seconds
     avatarClickTimerRef.current = window.setTimeout(() => {
         setAvatarClicks(0);
     }, 2000);
@@ -472,15 +475,12 @@ function App() {
 
   useEffect(() => {
     if (avatarClicks === 6) {
-        // Trigger Run Mode
         setAvatarClicks(0);
         setRunAnimationActive(true);
         setIsRunMode(true);
-        // Force exit breakdown mode if active
         setIsBreakdownMode(false);
         setTriggerLightning(false);
         
-        // Trigger Special Random Event
         setRandomEvent({
             id: 'run_mode_start',
             title: '人生何困此牢中',
@@ -490,7 +490,6 @@ function App() {
             icon: '🕊️'
         });
 
-        // Update Quote immediately
         setQuote("愿你历尽千帆，归来仍是少年。世界那么大，去看看吧！");
     }
   }, [avatarClicks]);
@@ -525,12 +524,12 @@ function App() {
           >
             <InfoCard 
               title="今日含泪收入" 
-              bgColor="bg-[#ffde59]" 
+              bgColor="bg-accent-yellow" 
               icon={<span className="text-2xl animate-bounce">💰</span>}
             >
               <div className="flex flex-col items-center py-2">
                  <div className="relative">
-                    <div className="text-5xl md:text-6xl font-black font-mono text-black tracking-tight drop-shadow-sm">
+                    <div className="text-5xl md:text-6xl font-black font-mono text-app-text tracking-tight drop-shadow-sm">
                       {settings.currencySymbol}{earnings.earnedToday.toFixed(4)}
                     </div>
                     {status === WorkStatus.WORKING && (
@@ -538,7 +537,7 @@ function App() {
                     )}
                  </div>
                  
-                 <div className="mt-2 text-sm font-bold bg-white/50 px-3 py-1 rounded-full border border-black/10">
+                 <div className="mt-2 text-sm font-bold bg-white/50 px-3 py-1 rounded-full border border-black/10 text-app-text">
                     秒薪: {settings.currencySymbol}{earnings.perSecond.toFixed(5)}
                  </div>
                  {isShaking && (
@@ -554,7 +553,7 @@ function App() {
         return (
           <InfoCard 
             title="距离下班 (短痛)" 
-            bgColor={status === WorkStatus.OVERTIME ? "bg-[#ff6b6b]" : "bg-[#5cff88]"} 
+            bgColor={status === WorkStatus.OVERTIME ? "bg-accent-red" : "bg-accent-green"} 
             icon={<span>⚡</span>}
           >
             <div className="mt-2">
@@ -568,16 +567,16 @@ function App() {
                ) : (
                  <>
                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-4xl font-black font-mono">{earnings.timeRemaining}</span>
-                      <span className="font-bold text-black/60">{Math.floor(earnings.progressPercentage)}%</span>
+                      <span className="text-4xl font-black font-mono text-app-text">{earnings.timeRemaining}</span>
+                      <span className="font-bold text-app-text opacity-60">{Math.floor(earnings.progressPercentage)}%</span>
                    </div>
-                   <div className="w-full h-8 bg-black/10 border-2 border-black rounded-full overflow-hidden relative">
+                   <div className="w-full h-8 bg-black/10 border-2 border-app-border rounded-full overflow-hidden relative">
                       <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(0,0,0,0.1)_25%,transparent_25%,transparent_50%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.1)_75%,transparent_75%,transparent)] bg-[length:20px_20px]"></div>
                       <div 
-                        className="h-full bg-black transition-all duration-1000 ease-linear flex items-center justify-end px-2"
+                        className="h-full bg-app-text transition-all duration-1000 ease-linear flex items-center justify-end px-2"
                         style={{ width: `${earnings.progressPercentage}%` }}
                       >
-                        {earnings.progressPercentage > 5 && <span className="text-white text-xs font-bold">🏃</span>}
+                        {earnings.progressPercentage > 5 && <span className="text-app-bg text-xs font-bold">🏃</span>}
                       </div>
                    </div>
                  </>
@@ -599,10 +598,10 @@ function App() {
         return (
           <InfoCard 
             title="距离退休 (长痛)" 
-            bgColor="bg-[#a2d2ff]" 
+            bgColor="bg-accent-blue" 
             icon={<span>🏖️</span>}
           >
-            <div className="mt-2">
+            <div className="mt-2 text-app-text">
                <div className="flex items-baseline gap-2 mb-3">
                  <span className="text-4xl font-black font-mono">{retirementStats.yearsLeft}</span>
                  <span className="text-xl font-bold">年</span>
@@ -610,13 +609,13 @@ function App() {
                  <span className="text-xl font-bold">天</span>
                </div>
                
-               <div className="w-full h-4 bg-white border-2 border-black rounded-full overflow-hidden">
+               <div className="w-full h-4 bg-white border-2 border-app-border rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-[#5e60ce]"
+                    className="h-full bg-indigo-500"
                     style={{ width: `${retirementStats.progress}%` }}
                   ></div>
                </div>
-               <div className="flex justify-between mt-1 text-xs font-bold text-black/60">
+               <div className="flex justify-between mt-1 text-xs font-bold opacity-60">
                   <span>22岁</span>
                   <span>进度: {retirementStats.progress.toFixed(1)}%</span>
                   <span>{settings.retirementAge}岁</span>
@@ -628,12 +627,12 @@ function App() {
         return <SlackingWidget />;
       case 'quote':
         return (
-          <div className="bg-white border-2 border-black rounded-xl p-6 shadow-comic relative mt-2 group-hover:translate-y-0 transition-transform">
-             <div className="absolute -top-5 -left-3 bg-black text-white px-3 py-1 text-sm font-bold rotate-[-3deg] border-2 border-white shadow-sm font-hand">
+          <div className="bg-card-bg border-2 border-app-border rounded-xl p-6 shadow-comic relative mt-2 group-hover:translate-y-0 transition-transform">
+             <div className="absolute -top-5 -left-3 bg-app-text text-app-bg px-3 py-1 text-sm font-bold rotate-[-3deg] border-2 border-app-border shadow-sm font-hand">
                 每日一碗毒鸡汤
              </div>
              
-             <blockquote className="text-xl font-bold text-gray-800 leading-relaxed font-hand text-center min-h-[80px] flex items-center justify-center">
+             <blockquote className="text-xl font-bold text-app-text leading-relaxed font-hand text-center min-h-[80px] flex items-center justify-center">
                "{quote}"
              </blockquote>
              
@@ -645,7 +644,7 @@ function App() {
                   }}
                   onPointerDown={(e) => e.stopPropagation()} 
                   disabled={isQuoteLoading}
-                  className="text-sm font-bold text-gray-500 hover:text-black underline decoration-2 underline-offset-4 decoration-wavy decoration-red-400 cursor-pointer relative z-30"
+                  className="text-sm font-bold text-gray-500 hover:text-app-text underline decoration-2 underline-offset-4 decoration-wavy decoration-red-400 cursor-pointer relative z-30"
                 >
                   {isQuoteLoading ? '熬汤中...' : '再来一碗'}
                 </button>
@@ -703,43 +702,35 @@ function App() {
     );
   }
 
-  // Theme Styles
-  let appBgClass = "bg-[#fcfbf7]";
-  let textColorClass = "text-black";
+  // Styles handling
+  let appBgClass = "bg-app-bg text-app-text";
   
   if (isRunMode) {
       appBgClass = "bg-[#4ade80]";
   } else if (isBreakdownMode) {
-      appBgClass = "bg-slate-700";
-      textColorClass = "text-gray-200";
+      appBgClass = "bg-slate-700 text-gray-200";
   }
 
   return (
-    <div className={`min-h-screen w-full font-sans pb-12 transition-colors duration-1000 ${appBgClass}`}>
+    <div ref={rootRef} className={`min-h-screen w-full font-sans pb-12 transition-colors duration-1000 ${appBgClass}`}>
       
-      {/* Visual Effects Layer */}
       {isBreakdownMode && <div ref={rainRef} className="rain-container z-0" />}
       {triggerLightning && <div className="lightning-flash animate-lightning"></div>}
       
-      {/* Run Mode Effects */}
       {isRunMode && <div ref={starsRef} className="star-bg" />}
 
-      {/* Random Event Modal */}
       <RandomEventModal event={randomEvent} onClose={() => setRandomEvent(null)} />
 
-      {/* Focus Mode Overlay */}
       {isFocusMode && <FocusMode onExit={exitFocusMode} />}
 
-      {/* Navbar */}
-      <nav className={`sticky top-0 z-40 backdrop-blur-md border-b-4 border-black py-3 transition-colors duration-500 ${isRunMode ? 'bg-[#4ade80]/90' : (isBreakdownMode ? 'bg-slate-800/90' : 'bg-[#fcfbf7]/90')}`}>
+      <nav className={`sticky top-0 z-40 backdrop-blur-md border-b-4 border-app-border py-3 transition-colors duration-500 ${isRunMode ? 'bg-[#4ade80]/90' : (isBreakdownMode ? 'bg-slate-800/90' : 'bg-app-bg/90')}`}>
         <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2 relative">
-            {/* Run Mode Smoke Effect */}
             {runAnimationActive && <div className="absolute -left-10 top-0 w-10 h-10 smoke"></div>}
             
             <div 
                 onClick={handleAvatarClick}
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-black shadow-sm overflow-hidden bg-white select-none cursor-pointer ${runAnimationActive ? 'animate-run-sequence' : ''}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-app-border shadow-sm overflow-hidden bg-card-bg select-none cursor-pointer ${runAnimationActive ? 'animate-run-sequence' : ''}`}
             >
                {settings.avatar ? (
                  <img src={settings.avatar} alt="Me" className="w-full h-full object-cover" />
@@ -747,7 +738,7 @@ function App() {
                  '🐂'
                )}
             </div>
-            <h1 className={`font-black text-2xl tracking-tighter font-hand ${textColorClass} ${isRunMode ? 'scale-125 origin-left text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]' : ''}`}>
+            <h1 className={`font-black text-2xl tracking-tighter font-hand ${isRunMode ? 'scale-125 origin-left text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]' : 'text-app-text'}`}>
               {isRunMode ? '润！！！' : (isBreakdownMode ? '牛马 (倒霉版)' : '牛马时钟')}
             </h1>
             {isBreakdownMode && <span className="text-2xl animate-pulse">⚡</span>}
@@ -756,10 +747,10 @@ function App() {
           <div className="flex gap-2">
              <button
                onClick={() => setIsShareModalOpen(true)}
-               className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] 
+               className={`p-2 border-2 border-app-border rounded-lg transition-all shadow-[2px_2px_0px_0px_var(--app-shadow)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] 
                ${isRunMode 
                   ? 'bg-white text-green-600 border-black hover:bg-green-100' 
-                  : (isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white')
+                  : (isBreakdownMode ? 'bg-gray-200 hover:bg-white text-black' : 'hover:bg-app-text hover:text-app-bg text-app-text')
                }`}
              >
                 {isRunMode ? '✈️' : (isBreakdownMode ? '⚰️' : '📸')}
@@ -767,7 +758,7 @@ function App() {
              {!isRunMode && (
                  <button
                    onClick={enterFocusMode}
-                   className={`hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
+                   className={`hidden md:block p-2 text-sm font-bold border-2 border-app-border rounded-lg transition-all shadow-[2px_2px_0px_0px_var(--app-shadow)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white text-black' : 'hover:bg-app-text hover:text-app-bg text-app-text'}`}
                    title="全屏进入专注模式"
                  >
                    🍅 专注模式
@@ -775,7 +766,7 @@ function App() {
              )}
              <button 
                 onClick={() => setIsSettingsOpen(true)}
-                className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
+                className={`p-2 border-2 border-app-border rounded-lg transition-all shadow-[2px_2px_0px_0px_var(--app-shadow)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white text-black' : 'hover:bg-app-text hover:text-app-bg text-app-text'}`}
              >
                 ⚙️ 设置
              </button>
@@ -787,7 +778,6 @@ function App() {
         
         {/* Top Header - Time */}
         <div className="text-center mb-2 cursor-pointer group relative" onClick={() => setIsCalendarOpen(true)}>
-           {/* Speed Lines */}
            {isRunMode && (
               <>
                  <div className="speed-line top-10 right-0 w-32"></div>
@@ -796,24 +786,23 @@ function App() {
               </>
            )}
 
-           <div className={`inline-block border-2 border-black px-6 py-2 rounded-full mb-4 shadow-comic transition-transform group-hover:scale-105 ${isRunMode ? 'bg-white text-green-600' : (isBreakdownMode ? 'bg-white text-black' : 'bg-black text-white')}`}>
+           <div className={`inline-block border-2 border-app-border px-6 py-2 rounded-full mb-4 shadow-comic transition-transform group-hover:scale-105 ${isRunMode ? 'bg-white text-green-600' : (isBreakdownMode ? 'bg-white text-black' : 'bg-app-text text-app-bg')}`}>
               <span className="font-bold tracking-widest uppercase">{isRunMode ? 'FREEDOM' : status}</span>
            </div>
-           <div className={`flex justify-center items-baseline font-black text-7xl md:text-8xl font-mono tracking-tighter transition-colors ${isRunMode ? 'text-white drop-shadow-[4px_4px_0_rgba(0,0,0,1)]' : textColorClass}`}>
+           <div className={`flex justify-center items-baseline font-black text-7xl md:text-8xl font-mono tracking-tighter transition-colors ${isRunMode ? 'text-white drop-shadow-[4px_4px_0_rgba(0,0,0,1)]' : 'text-app-text'}`}>
              {formattedTime}
              <span className={`text-4xl ml-2 ${isRunMode ? 'text-white/80' : 'text-gray-400'}`}>{formattedSeconds}</span>
            </div>
            <div className="flex items-center justify-center gap-2 mt-1">
-             <p className={`font-bold transition-colors ${isRunMode ? 'text-white' : (isBreakdownMode ? 'text-gray-300' : 'text-gray-500 group-hover:text-black')}`}>
+             <p className={`font-bold transition-colors ${isRunMode ? 'text-white' : (isBreakdownMode ? 'text-gray-300' : 'text-gray-500 group-hover:text-app-text')}`}>
                {currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
              </p>
-             <span className={`text-xs px-1.5 py-0.5 rounded font-bold animate-pulse ${isRunMode ? 'bg-white text-green-600' : 'bg-red-500 text-white'}`}>
+             <span className={`text-xs px-1.5 py-0.5 rounded font-bold animate-pulse ${isRunMode ? 'bg-white text-green-600' : 'bg-accent-red text-white'}`}>
                 {isRunMode ? '宜润' : '宜忌'}
              </span>
            </div>
         </div>
 
-        {/* Card Content Area */}
         {isRunMode ? (
             renderRunModeCards()
         ) : (

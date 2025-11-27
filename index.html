@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -15,13 +16,22 @@
               hand: ['"ZCOOL KuaiLe"', 'cursive'],
             },
             boxShadow: {
-              'comic': '5px 5px 0px 0px rgba(0,0,0,1)',
-              'comic-sm': '3px 3px 0px 0px rgba(0,0,0,1)',
-              'comic-hover': '2px 2px 0px 0px rgba(0,0,0,1)',
+              'comic': '5px 5px 0px 0px var(--app-shadow)',
+              'comic-sm': '3px 3px 0px 0px var(--app-shadow)',
+              'comic-hover': '2px 2px 0px 0px var(--app-shadow)',
             },
             colors: {
-              'paper': '#fcfbf7',
-              'ink': '#1a1a1a',
+              'app-bg': 'var(--app-bg)',
+              'app-text': 'var(--app-text)',
+              'app-border': 'var(--app-border)',
+              'card-bg': 'var(--card-bg)',
+              'accent-yellow': 'var(--accent-yellow)',
+              'accent-green': 'var(--accent-green)',
+              'accent-red': 'var(--accent-red)',
+              'accent-blue': 'var(--accent-blue)',
+              'accent-teal': 'var(--accent-teal)',
+              'accent-orange': 'var(--accent-orange)',
+              'accent-gray': 'var(--accent-gray)',
             },
             animation: {
               'bounce-sm': 'bounce-sm 0.5s infinite alternate',
@@ -102,13 +112,28 @@
       }
     </script>
     <style>
+      :root {
+        --app-bg: #fcfbf7;
+        --app-text: #1a1a1a;
+        --app-border: #1a1a1a;
+        --app-shadow: rgba(0,0,0,1);
+        --card-bg: #ffffff;
+        --accent-yellow: #ffde59;
+        --accent-green: #5cff88;
+        --accent-red: #ff6b6b;
+        --accent-blue: #a2d2ff;
+        --accent-teal: #2ec4b6;
+        --accent-orange: #ff9f1c;
+        --accent-gray: #e5e7eb;
+      }
+      
       body {
-        background-color: #fcfbf7;
-        color: #1a1a1a;
+        background-color: var(--app-bg);
+        color: var(--app-text);
         background-image: radial-gradient(#00000010 1px, transparent 1px);
         background-size: 20px 20px;
-        transition: background-color 1s ease;
-        overflow-x: hidden; /* Prevent horizontal scroll from flying animations */
+        transition: background-color 0.5s ease, color 0.5s ease;
+        overflow-x: hidden;
       }
       /* Custom scrollbar */
       ::-webkit-scrollbar {
@@ -116,11 +141,11 @@
       }
       ::-webkit-scrollbar-track {
         background: #f1f1f1;
-        border-left: 2px solid #000;
+        border-left: 2px solid var(--app-border);
       }
       ::-webkit-scrollbar-thumb {
-        background: #000;
-        border: 2px solid #000;
+        background: var(--app-border);
+        border: 2px solid var(--app-border);
         border-radius: 0;
       }
       ::-webkit-scrollbar-thumb:hover {
@@ -233,9 +258,7 @@
     "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@3.2.2?external=react,react-dom",
     "lunar-javascript": "https://esm.sh/lunar-javascript@1.6.12",
     "html2canvas": "https://esm.sh/html2canvas@1.4.1",
-    "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.2",
-    "@tarojs/components": "https://aistudiocdn.com/@tarojs/components@^4.1.8",
-    "@tarojs/taro": "https://aistudiocdn.com/@tarojs/taro@^4.1.8"
+    "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.2"
   }
 }
 </script>
