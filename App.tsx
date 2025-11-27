@@ -16,6 +16,8 @@ import { SlackingWidget } from './components/SlackingWidget';
 import { WorkLogStatsModal } from './components/WorkLogStatsModal';
 import { RandomEventModal } from './components/RandomEventModal';
 import { checkDailyRandomEvent } from './utils/eventUtils';
+import { MoneyRunGame } from './components/MoneyRunGame';
+import confetti from 'canvas-confetti';
 
 // Default Settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -42,15 +44,12 @@ function App() {
 
   const [cardOrder, setCardOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('niuMaCardOrder');
-    // Updated default order with 'multiGoal' instead of 'holidays'
     const defaultOrder = ['clockIn', 'earnings', 'shortPain', 'slacking', 'multiGoal', 'redemption', 'longPain', 'quote'];
     if (saved) {
       let parsed = JSON.parse(saved);
-      // Migration: Replace 'holidays' with 'multiGoal' if present
       if (parsed.includes('holidays')) {
          parsed = parsed.map((id: string) => id === 'holidays' ? 'multiGoal' : id);
       }
-      // Merge unique items from defaultOrder that are missing in parsed
       const missing = defaultOrder.filter(item => !parsed.includes(item));
       if (missing.length > 0) {
         return [...parsed, ...missing];
@@ -70,9 +69,12 @@ function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isLogStatsOpen, setIsLogStatsOpen] = useState(false);
   const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
-  
-  // Focus Mode State
   const [isFocusMode, setIsFocusMode] = useState(false);
+  
+  // Easter Egg Game State
+  const [isGameMode, setIsGameMode] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const longPressTimerRef = useRef<number | null>(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [earnings, setEarnings] = useState<EarningsData>({
@@ -86,7 +88,6 @@ function App() {
   const [quote, setQuote] = useState<string>("正在连接牛马神经网络...");
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   
-  // Retirement Stats
   const [retirementStats, setRetirementStats] = useState({
     yearsLeft: 0,
     daysLeft: 0,
@@ -95,7 +96,6 @@ function App() {
 
   const lastQuoteTimeRef = useRef<number>(0);
 
-  // DnD Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -107,12 +107,9 @@ function App() {
     })
   );
 
-  // Detect Orientation/Fullscreen & Random Event on Mount
   useEffect(() => {
-    // Check for random event
     const event = checkDailyRandomEvent();
     if (event) {
-      // Delay slightly for dramatic effect
       setTimeout(() => setRandomEvent(event), 1000);
     }
 
@@ -140,7 +137,6 @@ function App() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       setCardOrder((items) => {
         const oldIndex = items.indexOf(active.id as string);
@@ -331,6 +327,32 @@ function App() {
     }
   };
 
+  // --- Long Press Logic for Game ---
+  const handleEarningsPressStart = (e: React.PointerEvent) => {
+    // Prevent default to stop scrolling/selecting on mobile sometimes
+    // e.preventDefault(); 
+    setIsShaking(true);
+    longPressTimerRef.current = window.setTimeout(() => {
+      // Trigger Game
+      setIsShaking(false);
+      confetti({
+        particleCount: 150,
+        spread: 360,
+        startVelocity: 30,
+        colors: ['#FFD700', '#FFA500', '#FFFFFF']
+      });
+      setIsGameMode(true);
+    }, 1200); // 1.2s hold
+  };
+
+  const handleEarningsPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    setIsShaking(false);
+  };
+
   const formattedTime = currentTime.toLocaleTimeString('zh-CN', { 
     hour12: false,
     hour: '2-digit',
@@ -352,26 +374,39 @@ function App() {
         );
       case 'earnings':
         return (
-          <InfoCard 
-            title="今日含泪收入" 
-            bgColor="bg-[#ffde59]" 
-            icon={<span className="text-2xl animate-bounce">💰</span>}
+          <div 
+             onPointerDown={handleEarningsPressStart} 
+             onPointerUp={handleEarningsPressEnd}
+             onPointerLeave={handleEarningsPressEnd}
+             onPointerCancel={handleEarningsPressEnd}
+             className={`transition-transform select-none cursor-pointer ${isShaking ? 'animate-shake scale-105' : ''}`}
           >
-            <div className="flex flex-col items-center py-2">
-               <div className="relative">
-                  <div className="text-5xl md:text-6xl font-black font-mono text-black tracking-tight drop-shadow-sm">
-                    {settings.currencySymbol}{earnings.earnedToday.toFixed(4)}
-                  </div>
-                  {status === WorkStatus.WORKING && (
-                     <div className="absolute -right-6 -top-2 text-2xl animate-pulse">✨</div>
-                  )}
-               </div>
-               
-               <div className="mt-2 text-sm font-bold bg-white/50 px-3 py-1 rounded-full border border-black/10">
-                  秒薪: {settings.currencySymbol}{earnings.perSecond.toFixed(5)}
-               </div>
-            </div>
-          </InfoCard>
+            <InfoCard 
+              title="今日含泪收入" 
+              bgColor="bg-[#ffde59]" 
+              icon={<span className="text-2xl animate-bounce">💰</span>}
+            >
+              <div className="flex flex-col items-center py-2">
+                 <div className="relative">
+                    <div className="text-5xl md:text-6xl font-black font-mono text-black tracking-tight drop-shadow-sm">
+                      {settings.currencySymbol}{earnings.earnedToday.toFixed(4)}
+                    </div>
+                    {status === WorkStatus.WORKING && (
+                       <div className="absolute -right-6 -top-2 text-2xl animate-pulse">✨</div>
+                    )}
+                 </div>
+                 
+                 <div className="mt-2 text-sm font-bold bg-white/50 px-3 py-1 rounded-full border border-black/10">
+                    秒薪: {settings.currencySymbol}{earnings.perSecond.toFixed(5)}
+                 </div>
+                 {isShaking && (
+                    <div className="absolute top-2 right-2 text-xs font-bold text-red-500 animate-ping">
+                       HOLD...
+                    </div>
+                 )}
+              </div>
+            </InfoCard>
+          </div>
         );
       case 'shortPain':
         return (
@@ -409,7 +444,6 @@ function App() {
           </InfoCard>
         );
       case 'multiGoal':
-        // Replaced HolidayCard
         return <MultiGoalCard endTime={settings.endTime} salaryDay={settings.salaryDay || 15} birthDate={settings.birthDate} />;
       case 'redemption':
         return (
@@ -480,6 +514,18 @@ function App() {
         return null;
     }
   };
+
+  // --- Render ---
+
+  if (isGameMode) {
+    return (
+      <MoneyRunGame 
+        onExit={() => setIsGameMode(false)} 
+        avatar={settings.avatar} 
+        currencySymbol={settings.currencySymbol} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen w-full font-sans pb-12">
