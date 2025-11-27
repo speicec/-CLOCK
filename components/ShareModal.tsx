@@ -16,7 +16,20 @@ interface ShareModalProps {
   retirementStats?: { yearsLeft: number; daysLeft: number; progress: number };
   birthDate?: string;
   retirementAge?: number;
+  // New prop for Run Mode
+  isRunMode?: boolean;
 }
+
+const DESTINATIONS = [
+  { name: 'Reykjavik, Iceland', image: 'https://images.unsplash.com/photo-1476610182048-b716b8518aae?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Kyoto, Japan', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Maldives', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Swiss Alps', image: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Santorini, Greece', image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Queenstown, NZ', image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Banff, Canada', image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Amalfi Coast, Italy', image: 'https://images.unsplash.com/photo-1633321088355-d0f8c1eaad4b?auto=format&fit=crop&w=600&q=80' },
+];
 
 export const ShareModal: React.FC<ShareModalProps> = ({ 
   isOpen, 
@@ -30,12 +43,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   isBreakdownMode = false,
   retirementStats,
   birthDate,
-  retirementAge
+  retirementAge,
+  isRunMode = false
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [equipment, setEquipment] = useState<any>(null);
   const [epitaph, setEpitaph] = useState('');
+  const [destination, setDestination] = useState(DESTINATIONS[0]);
 
   // Equipment Logic for Standard Mode
   useEffect(() => {
@@ -48,26 +63,30 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
   }, [targetName, targetDate]);
 
-  // Epitaph Logic for Breakdown Mode
+  // Logic for Breakdown Mode and Run Mode
   useEffect(() => {
-    if (isOpen && isBreakdownMode) {
-      const epitaphs = [
-        "KPI 未达标，含恨离去。",
-        "生前是个好牛马，可惜话太多。",
-        "房贷没还完，人先走了。",
-        "终于可以不用回钉钉了。",
-        "下辈子争取当个熊猫。",
-        "这里长眠着一个没有梦想的灵魂。",
-        "他差点就熬到了退休。",
-        "最大的遗憾是没把老板带走。",
-        "因过度画饼导致消化不良而亡。",
-        "至死都没等到涨薪通知。",
-        "比起死亡，周一早上更可怕。",
-        "不仅没留下遗产，还欠了花呗。"
-      ];
-      setEpitaph(epitaphs[Math.floor(Math.random() * epitaphs.length)]);
+    if (isOpen) {
+      if (isBreakdownMode) {
+        const epitaphs = [
+          "KPI 未达标，含恨离去。",
+          "生前是个好牛马，可惜话太多。",
+          "房贷没还完，人先走了。",
+          "终于可以不用回钉钉了。",
+          "下辈子争取当个熊猫。",
+          "这里长眠着一个没有梦想的灵魂。",
+          "他差点就熬到了退休。",
+          "最大的遗憾是没把老板带走。",
+          "因过度画饼导致消化不良而亡。",
+          "至死都没等到涨薪通知。",
+          "比起死亡，周一早上更可怕。",
+          "不仅没留下遗产，还欠了花呗。"
+        ];
+        setEpitaph(epitaphs[Math.floor(Math.random() * epitaphs.length)]);
+      } else if (isRunMode) {
+        setDestination(DESTINATIONS[Math.floor(Math.random() * DESTINATIONS.length)]);
+      }
     }
-  }, [isOpen, isBreakdownMode]);
+  }, [isOpen, isBreakdownMode, isRunMode]);
 
   if (!isOpen) return null;
 
@@ -76,7 +95,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setIsGenerating(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 300)); // Ensure images load
+      await new Promise(resolve => setTimeout(resolve, 500)); // Ensure images load (longer for external)
       
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: null,
@@ -89,7 +108,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       
       const link = document.createElement('a');
       link.href = image;
-      link.download = `niu-ma-clock-${isBreakdownMode ? 'rip' : 'status'}-${Date.now()}.png`;
+      link.download = `niu-ma-clock-${isRunMode ? 'freedom' : (isBreakdownMode ? 'rip' : 'status')}-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -124,7 +143,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       <div className={`relative w-full max-w-sm rounded-xl shadow-2xl border-4 ${isBreakdownMode ? 'bg-gray-800 border-gray-600' : 'bg-[#fcfbf7] border-black'} p-6 animate-bounce-sm max-h-[90vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-4">
             <h3 className={`text-xl font-black ${isBreakdownMode ? 'text-gray-300 font-serif' : 'text-black font-hand'}`}>
-              {isBreakdownMode ? '⚰️ 工位墓碑生成器' : '一键社死'}
+              {isRunMode ? '✈️ 自由之路' : (isBreakdownMode ? '⚰️ 工位墓碑生成器' : '一键社死')}
             </h3>
             <button onClick={onClose} className={`text-2xl hover:scale-110 ${isBreakdownMode ? 'text-gray-400' : 'text-black'}`}>✖️</button>
         </div>
@@ -173,6 +192,62 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 牛马时钟 · 2025
              </div>
           </div>
+        ) : isRunMode ? (
+           /* --- RUN MODE --- */
+           <div
+             ref={cardRef}
+             className="relative mb-6 rounded-lg overflow-hidden border-4 border-white shadow-2xl h-[400px] flex flex-col"
+           >
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                 <img src={destination.image} alt="Dest" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                 {/* Rainbow Gradient Overlay */}
+                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/30 via-purple-500/30 to-yellow-500/30 mix-blend-screen pointer-events-none"></div>
+                 {/* Darken bottom for text */}
+                 <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"></div>
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col h-full justify-between p-6">
+                  <div className="flex justify-between items-start">
+                      <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg border-2 border-black transform -rotate-2">
+                         <span className="font-black text-xl font-hand">RUN! 润!</span>
+                      </div>
+                      <div className="w-16 h-16 rounded-full border-2 border-white overflow-hidden shadow-lg">
+                          {avatar ? (
+                            <img src={avatar} alt="Me" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-white flex items-center justify-center text-2xl">😎</div>
+                          )}
+                      </div>
+                  </div>
+
+                  <div className="text-white">
+                      <h2 className="text-3xl font-black font-hand mb-2 leading-tight drop-shadow-md">
+                        世界那么大<br/>我想去看看
+                      </h2>
+                      <div className="flex items-center gap-2 mb-4">
+                         <span className="text-2xl">📍</span>
+                         <span className="font-bold font-mono tracking-widest uppercase text-yellow-300">
+                            {destination.name}
+                         </span>
+                      </div>
+                      
+                      {/* Ticket Stub Look */}
+                      <div className="bg-white text-black p-3 rounded-lg flex justify-between items-center">
+                          <div className="flex flex-col">
+                             <span className="text-[10px] text-gray-500 font-bold uppercase">Destination</span>
+                             <span className="font-black text-lg">FREEDOM</span>
+                          </div>
+                          <div className="h-8 border-r-2 border-dashed border-gray-300 mx-2"></div>
+                          <div className="flex flex-col items-end">
+                             <span className="text-[10px] text-gray-500 font-bold uppercase">Date</span>
+                             <span className="font-black text-lg text-[#4ade80]">NOW</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+           </div>
         ) : (
           /* --- STANDARD MODE --- */
           <div 
@@ -236,9 +311,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         <button 
           onClick={handleShare}
           disabled={isGenerating}
-          className={`w-full ${isBreakdownMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-900' : 'bg-[#ff6b6b] hover:bg-[#ff5252] text-white border-black'} font-black text-xl py-3 px-4 rounded-xl border-2 shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all font-hand flex items-center justify-center gap-2`}
+          className={`w-full ${isBreakdownMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-900' : (isRunMode ? 'bg-[#4ade80] hover:bg-green-400 text-black border-black' : 'bg-[#ff6b6b] hover:bg-[#ff5252] text-white border-black')} font-black text-xl py-3 px-4 rounded-xl border-2 shadow-comic active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all font-hand flex items-center justify-center gap-2`}
         >
-          {isGenerating ? '刻碑中...' : (isBreakdownMode ? '🪦 立碑留念' : '📸 保存并发朋友圈')}
+          {isGenerating ? '生成中...' : (isBreakdownMode ? '🪦 立碑留念' : (isRunMode ? '✈️ 晒晒机票' : '📸 保存并发朋友圈'))}
         </button>
       </div>
     </div>

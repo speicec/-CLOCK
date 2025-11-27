@@ -755,7 +755,7 @@ function App() {
                onClick={() => setIsShareModalOpen(true)}
                className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
              >
-                {isBreakdownMode ? '⚰️' : '📸'}
+                {isBreakdownMode ? '⚰️' : (isRunMode ? '✈️' : '📸')}
              </button>
              {!isRunMode && (
                  <button
@@ -856,6 +856,7 @@ function App() {
          retirementStats={retirementStats}
          birthDate={settings.birthDate}
          retirementAge={settings.retirementAge}
+         isRunMode={isRunMode}
       />
 
       <WorkLogStatsModal 
