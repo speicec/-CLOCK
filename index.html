@@ -28,6 +28,7 @@
               'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
               'slide-in': 'slide-in 0.3s ease-out forwards',
               'fade-in': 'fade-in 0.2s ease-out forwards',
+              'flash': 'flash 0.5s ease-out',
             },
             keyframes: {
               'bounce-sm': {
@@ -47,6 +48,10 @@
               'fade-in': {
                 '0%': { opacity: '0' },
                 '100%': { opacity: '1' }
+              },
+              'flash': {
+                '0%, 100%': { opacity: '0' },
+                '50%': { opacity: '1', backgroundColor: 'white' }
               }
             }
           },
@@ -59,6 +64,7 @@
         color: #1a1a1a;
         background-image: radial-gradient(#00000010 1px, transparent 1px);
         background-size: 20px 20px;
+        transition: background-color 1s ease;
       }
       /* Custom scrollbar */
       ::-webkit-scrollbar {
@@ -75,6 +81,57 @@
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #333;
+      }
+
+      /* Rain Animation */
+      .rain-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
+      
+      .rain-drop {
+        position: absolute;
+        background-color: rgba(174, 194, 224, 0.5);
+        width: 2px;
+        height: 10px;
+        top: -10px;
+        animation: rain-fall linear infinite;
+      }
+
+      @keyframes rain-fall {
+        0% { transform: translateY(-10px); }
+        100% { transform: translateY(100vh); }
+      }
+
+      .lightning-flash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 9999;
+      }
+      
+      .animate-lightning {
+        animation: lightning 0.5s ease-in-out;
+      }
+
+      @keyframes lightning {
+        0% { opacity: 0; }
+        10% { opacity: 0.8; }
+        20% { opacity: 0; }
+        40% { opacity: 1; }
+        60% { opacity: 0; }
+        100% { opacity: 0; }
       }
     </style>
   <script type="importmap">

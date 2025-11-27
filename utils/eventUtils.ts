@@ -64,30 +64,27 @@ const EVENTS: RandomEvent[] = [
     type: 'neutral',
     effectText: '信任度 -10',
     icon: '🥞'
+  },
+  {
+    id: 'kpi_increase',
+    title: '加量不加价',
+    description: 'KPI 指标突然上调了 20%，但工资条纹丝不动。',
+    type: 'bad',
+    effectText: '怒气值 +50',
+    icon: '📊'
+  },
+  {
+    id: 'wifi_slow',
+    title: '网络降智',
+    description: '公司 WiFi 变成 2G 速度，加载一个网页需要一万年。',
+    type: 'bad',
+    effectText: '耐心 -100',
+    icon: '🐢'
   }
 ];
 
-// 20% chance to trigger an event per day
-const TRIGGER_PROBABILITY = 0.2; 
-
-export const checkDailyRandomEvent = (): RandomEvent | null => {
-  const today = new Date().toLocaleDateString();
-  const lastCheck = localStorage.getItem('niuMaLastEventCheck');
-  
-  // If already checked today, don't trigger again
-  if (lastCheck === today) {
-    return null;
-  }
-  
-  // Mark as checked
-  localStorage.setItem('niuMaLastEventCheck', today);
-
-  // Roll dice
-  if (Math.random() > TRIGGER_PROBABILITY) {
-    return null;
-  }
-
-  // Pick random event
+export const triggerRandomEvent = (): RandomEvent => {
+  // Always trigger a random event
   const randomIndex = Math.floor(Math.random() * EVENTS.length);
   return EVENTS[randomIndex];
 };

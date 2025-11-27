@@ -15,7 +15,7 @@ import { ClockInCard } from './components/ClockInCard';
 import { SlackingWidget } from './components/SlackingWidget';
 import { WorkLogStatsModal } from './components/WorkLogStatsModal';
 import { RandomEventModal } from './components/RandomEventModal';
-import { checkDailyRandomEvent } from './utils/eventUtils';
+import { triggerRandomEvent } from './utils/eventUtils';
 import { MoneyRunGame } from './components/MoneyRunGame';
 import confetti from 'canvas-confetti';
 
@@ -71,6 +71,12 @@ function App() {
   const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
   
+  // Breakdown / Unlucky Mode State
+  const [isBreakdownMode, setIsBreakdownMode] = useState(false);
+  const [breakdownUntil, setBreakdownUntil] = useState(() => Number(localStorage.getItem('niuMaBreakdownUntil') || 0));
+  const [consecutiveBadEvents, setConsecutiveBadEvents] = useState(() => Number(localStorage.getItem('niuMaBadCombo') || 0));
+  const [triggerLightning, setTriggerLightning] = useState(false);
+  
   // Easter Egg Game State
   const [isGameMode, setIsGameMode] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -95,6 +101,7 @@ function App() {
   });
 
   const lastQuoteTimeRef = useRef<number>(0);
+  const rainRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -107,12 +114,60 @@ function App() {
     })
   );
 
+  // Initialize Event and Check Breakdown Mode
   useEffect(() => {
-    const event = checkDailyRandomEvent();
-    if (event) {
-      setTimeout(() => setRandomEvent(event), 1000);
+    // Check if in breakdown mode
+    const now = Date.now();
+    if (now < breakdownUntil) {
+      setIsBreakdownMode(true);
+    } else {
+      setIsBreakdownMode(false);
+      if (breakdownUntil !== 0) {
+        localStorage.setItem('niuMaBreakdownUntil', '0');
+        setBreakdownUntil(0);
+      }
     }
 
+    // Trigger Random Event on every mount
+    const event = triggerRandomEvent();
+    
+    // Process Event for Combo
+    let newCombo = consecutiveBadEvents;
+    if (event.type === 'bad') {
+      newCombo += 1;
+    } else {
+      newCombo = 0;
+    }
+    
+    setConsecutiveBadEvents(newCombo);
+    localStorage.setItem('niuMaBadCombo', newCombo.toString());
+
+    // Check for Critical Hit (3 in a row)
+    if (newCombo >= 3) {
+      // Trigger Breakdown
+      const breakdownTime = now + 60 * 60 * 1000; // 1 hour
+      setBreakdownUntil(breakdownTime);
+      localStorage.setItem('niuMaBreakdownUntil', breakdownTime.toString());
+      
+      // Reset Combo
+      setConsecutiveBadEvents(0);
+      localStorage.setItem('niuMaBadCombo', '0');
+
+      // Visual Trigger
+      setTimeout(() => {
+        setRandomEvent(null); // Clear normal event modal if needed
+        setTriggerLightning(true);
+        setIsBreakdownMode(true);
+        
+        // Hide lightning after animation
+        setTimeout(() => setTriggerLightning(false), 600);
+      }, 500);
+    } else {
+       // Show normal event after a short delay
+       setTimeout(() => setRandomEvent(event), 800);
+    }
+
+    // Setup Focus Mode Check
     const checkFocusCondition = () => {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       const isFullscreen = !!document.fullscreenElement;
@@ -134,6 +189,23 @@ function App() {
       document.removeEventListener('fullscreenchange', checkFocusCondition);
     };
   }, []);
+
+  // Rain Effect Logic
+  useEffect(() => {
+    if (isBreakdownMode && rainRef.current) {
+      const container = rainRef.current;
+      container.innerHTML = '';
+      const dropCount = 50;
+      for (let i = 0; i < dropCount; i++) {
+        const drop = document.createElement('div');
+        drop.classList.add('rain-drop');
+        drop.style.left = `${Math.random() * 100}%`;
+        drop.style.animationDuration = `${0.5 + Math.random() * 0.5}s`;
+        drop.style.animationDelay = `${Math.random() * 2}s`;
+        container.appendChild(drop);
+      }
+    }
+  }, [isBreakdownMode]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -527,9 +599,17 @@ function App() {
     );
   }
 
+  // Breakdown Theme Styles
+  const appBgClass = isBreakdownMode ? "bg-slate-700" : "bg-[#fcfbf7]";
+  const textColorClass = isBreakdownMode ? "text-gray-200" : "text-black";
+
   return (
-    <div className="min-h-screen w-full font-sans pb-12">
+    <div className={`min-h-screen w-full font-sans pb-12 transition-colors duration-1000 ${appBgClass}`}>
       
+      {/* Visual Effects Layer */}
+      {isBreakdownMode && <div ref={rainRef} className="rain-container z-0" />}
+      {triggerLightning && <div className="lightning-flash animate-lightning"></div>}
+
       {/* Random Event Modal */}
       <RandomEventModal event={randomEvent} onClose={() => setRandomEvent(null)} />
 
@@ -537,7 +617,7 @@ function App() {
       {isFocusMode && <FocusMode onExit={exitFocusMode} />}
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 bg-[#fcfbf7]/90 backdrop-blur-md border-b-4 border-black py-3">
+      <nav className={`sticky top-0 z-40 backdrop-blur-md border-b-4 border-black py-3 transition-colors duration-500 ${isBreakdownMode ? 'bg-slate-800/90' : 'bg-[#fcfbf7]/90'}`}>
         <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-black shadow-sm overflow-hidden bg-white">
@@ -547,25 +627,28 @@ function App() {
                  '🐂'
                )}
             </div>
-            <h1 className="font-black text-2xl tracking-tighter font-hand">牛马时钟</h1>
+            <h1 className={`font-black text-2xl tracking-tighter font-hand ${textColorClass}`}>
+              {isBreakdownMode ? '牛马 (倒霉版)' : '牛马时钟'}
+            </h1>
+            {isBreakdownMode && <span className="text-2xl animate-pulse">⚡</span>}
           </div>
           <div className="flex gap-2">
              <button
                onClick={() => setIsShareModalOpen(true)}
-               className="p-2 border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+               className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
              >
                 📸
              </button>
              <button
                onClick={enterFocusMode}
-               className="hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+               className={`hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
                title="全屏进入专注模式"
              >
                🍅 专注模式
              </button>
              <button 
                 onClick={() => setIsSettingsOpen(true)}
-                className="p-2 border-2 border-black rounded-lg hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+                className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
              >
                 ⚙️ 设置
              </button>
@@ -573,19 +656,19 @@ function App() {
         </div>
       </nav>
 
-      <main className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-6">
+      <main className="max-w-xl mx-auto px-4 py-6 flex flex-col gap-6 relative z-10">
         
         {/* Top Header - Time */}
         <div className="text-center mb-2 cursor-pointer group relative" onClick={() => setIsCalendarOpen(true)}>
-           <div className="inline-block bg-black text-white px-6 py-2 rounded-full border-2 border-black mb-4 shadow-comic transition-transform group-hover:scale-105">
+           <div className={`inline-block border-2 border-black px-6 py-2 rounded-full mb-4 shadow-comic transition-transform group-hover:scale-105 ${isBreakdownMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
               <span className="font-bold tracking-widest uppercase">{status}</span>
            </div>
-           <div className="flex justify-center items-baseline font-black text-7xl md:text-8xl text-black font-mono tracking-tighter group-hover:text-gray-800 transition-colors">
+           <div className={`flex justify-center items-baseline font-black text-7xl md:text-8xl font-mono tracking-tighter transition-colors ${textColorClass}`}>
              {formattedTime}
-             <span className="text-4xl ml-2 text-gray-400">{formattedSeconds}</span>
+             <span className={`text-4xl ml-2 ${isBreakdownMode ? 'text-gray-400' : 'text-gray-400'}`}>{formattedSeconds}</span>
            </div>
            <div className="flex items-center justify-center gap-2 mt-1">
-             <p className="text-gray-500 font-bold group-hover:text-black transition-colors">
+             <p className={`font-bold transition-colors ${isBreakdownMode ? 'text-gray-300' : 'text-gray-500 group-hover:text-black'}`}>
                {currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
              </p>
              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold animate-pulse">宜忌</span>
