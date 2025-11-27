@@ -17,6 +17,7 @@ import { WorkLogStatsModal } from './components/WorkLogStatsModal';
 import { RandomEventModal } from './components/RandomEventModal';
 import { triggerRandomEvent } from './utils/eventUtils';
 import { MoneyRunGame } from './components/MoneyRunGame';
+import { TicketCard } from './components/TicketCard';
 import confetti from 'canvas-confetti';
 
 // Default Settings
@@ -76,6 +77,13 @@ function App() {
   const [breakdownUntil, setBreakdownUntil] = useState(() => Number(localStorage.getItem('niuMaBreakdownUntil') || 0));
   const [consecutiveBadEvents, setConsecutiveBadEvents] = useState(() => Number(localStorage.getItem('niuMaBadCombo') || 0));
   const [triggerLightning, setTriggerLightning] = useState(false);
+  
+  // Run Mode (Runology) State
+  const [isRunMode, setIsRunMode] = useState(false);
+  const [avatarClicks, setAvatarClicks] = useState(0);
+  const avatarClickTimerRef = useRef<number | null>(null);
+  const [runAnimationActive, setRunAnimationActive] = useState(false);
+  const starsRef = useRef<HTMLDivElement>(null);
   
   // Easter Egg Game State
   const [isGameMode, setIsGameMode] = useState(false);
@@ -206,6 +214,26 @@ function App() {
       }
     }
   }, [isBreakdownMode]);
+
+  // Star Effect Logic for Run Mode
+  useEffect(() => {
+    if (isRunMode && starsRef.current) {
+      const container = starsRef.current;
+      container.innerHTML = '';
+      const starCount = 60;
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        const size = Math.random() * 3 + 1;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.animationDelay = `${Math.random() * 2}s`;
+        container.appendChild(star);
+      }
+    }
+  }, [isRunMode]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -352,6 +380,11 @@ function App() {
   }, [calculateEarnings]);
 
   const fetchQuote = useCallback(async (currentStatus: WorkStatus) => {
+    if (isRunMode) {
+        setQuote("愿你历尽千帆，归来仍是少年。世界那么大，去看看吧！");
+        return;
+    }
+
     const now = Date.now();
     if (now - lastQuoteTimeRef.current < QUOTE_REFRESH_INTERVAL && lastQuoteTimeRef.current !== 0) {
       return;
@@ -367,7 +400,7 @@ function App() {
     } finally {
       setIsQuoteLoading(false);
     }
-  }, []);
+  }, [isRunMode]);
 
   useEffect(() => {
     fetchQuote(status);
@@ -401,8 +434,6 @@ function App() {
 
   // --- Long Press Logic for Game ---
   const handleEarningsPressStart = (e: React.PointerEvent) => {
-    // Prevent default to stop scrolling/selecting on mobile sometimes
-    // e.preventDefault(); 
     setIsShaking(true);
     longPressTimerRef.current = window.setTimeout(() => {
       // Trigger Game
@@ -424,6 +455,42 @@ function App() {
     }
     setIsShaking(false);
   };
+
+  // --- Run Mode Trigger Logic ---
+  const handleAvatarClick = () => {
+    setAvatarClicks(prev => prev + 1);
+    
+    if (avatarClickTimerRef.current) {
+        clearTimeout(avatarClickTimerRef.current);
+    }
+
+    // Reset if user stops clicking for 2 seconds
+    avatarClickTimerRef.current = window.setTimeout(() => {
+        setAvatarClicks(0);
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (avatarClicks === 6) {
+        // Trigger Run Mode
+        setAvatarClicks(0);
+        setRunAnimationActive(true);
+        setIsRunMode(true);
+        
+        // Trigger Special Random Event
+        setRandomEvent({
+            id: 'run_mode_start',
+            title: '人生何困此牢中',
+            description: '你突然顿悟：这破班，爱谁上谁上！世界那么大，我想去看看。',
+            type: 'good',
+            effectText: '自由值 MAX',
+            icon: '🕊️'
+        });
+
+        // Update Quote immediately
+        setQuote("愿你历尽千帆，归来仍是少年。世界那么大，去看看吧！");
+    }
+  }, [avatarClicks]);
 
   const formattedTime = currentTime.toLocaleTimeString('zh-CN', { 
     hour12: false,
@@ -587,6 +654,40 @@ function App() {
     }
   };
 
+  const renderRunModeCards = () => {
+      const tickets = [
+          { title: "出国签证", icon: "🛂", bgColor: "bg-blue-200" },
+          { title: "财富自由", icon: "💰", bgColor: "bg-yellow-200" },
+          { title: "美好人生", icon: "🌈", bgColor: "bg-pink-200" },
+          { title: "不用上班", icon: "🎮", bgColor: "bg-purple-200" },
+          { title: "提前退休", icon: "👴", bgColor: "bg-orange-200" },
+          { title: "享受人生", icon: "🍹", bgColor: "bg-green-200" },
+      ];
+
+      return (
+          <div className="animate-fade-in">
+              {tickets.map((t, i) => (
+                  <TicketCard 
+                    key={i} 
+                    title={t.title} 
+                    icon={t.icon} 
+                    status={t.title === "享受人生" ? "就是现在!" : "GET"} 
+                    bgColor={t.bgColor}
+                  />
+              ))}
+              
+               <div className="bg-white border-2 border-black rounded-xl p-6 shadow-comic relative mt-6 mb-8 transform rotate-1">
+                 <div className="absolute -top-5 -left-3 bg-[#4ade80] text-black px-3 py-1 text-sm font-bold rotate-[-3deg] border-2 border-black shadow-sm font-hand">
+                    美好的祝福
+                 </div>
+                 <blockquote className="text-xl font-bold text-gray-800 leading-relaxed font-hand text-center">
+                   "{quote}"
+                 </blockquote>
+              </div>
+          </div>
+      );
+  };
+
   // --- Render ---
 
   if (isGameMode) {
@@ -599,9 +700,16 @@ function App() {
     );
   }
 
-  // Breakdown Theme Styles
-  const appBgClass = isBreakdownMode ? "bg-slate-700" : "bg-[#fcfbf7]";
-  const textColorClass = isBreakdownMode ? "text-gray-200" : "text-black";
+  // Theme Styles
+  let appBgClass = "bg-[#fcfbf7]";
+  let textColorClass = "text-black";
+  
+  if (isRunMode) {
+      appBgClass = "bg-[#4ade80]";
+  } else if (isBreakdownMode) {
+      appBgClass = "bg-slate-700";
+      textColorClass = "text-gray-200";
+  }
 
   return (
     <div className={`min-h-screen w-full font-sans pb-12 transition-colors duration-1000 ${appBgClass}`}>
@@ -609,6 +717,9 @@ function App() {
       {/* Visual Effects Layer */}
       {isBreakdownMode && <div ref={rainRef} className="rain-container z-0" />}
       {triggerLightning && <div className="lightning-flash animate-lightning"></div>}
+      
+      {/* Run Mode Effects */}
+      {isRunMode && <div ref={starsRef} className="star-bg" />}
 
       {/* Random Event Modal */}
       <RandomEventModal event={randomEvent} onClose={() => setRandomEvent(null)} />
@@ -617,20 +728,27 @@ function App() {
       {isFocusMode && <FocusMode onExit={exitFocusMode} />}
 
       {/* Navbar */}
-      <nav className={`sticky top-0 z-40 backdrop-blur-md border-b-4 border-black py-3 transition-colors duration-500 ${isBreakdownMode ? 'bg-slate-800/90' : 'bg-[#fcfbf7]/90'}`}>
+      <nav className={`sticky top-0 z-40 backdrop-blur-md border-b-4 border-black py-3 transition-colors duration-500 ${isRunMode ? 'bg-[#4ade80]/90' : (isBreakdownMode ? 'bg-slate-800/90' : 'bg-[#fcfbf7]/90')}`}>
         <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-black shadow-sm overflow-hidden bg-white">
+          <div className="flex items-center gap-2 relative">
+            {/* Run Mode Smoke Effect */}
+            {runAnimationActive && <div className="absolute -left-10 top-0 w-10 h-10 smoke"></div>}
+            
+            <div 
+                onClick={handleAvatarClick}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl border-2 border-black shadow-sm overflow-hidden bg-white select-none cursor-pointer ${runAnimationActive ? 'animate-run-sequence' : ''}`}
+            >
                {settings.avatar ? (
                  <img src={settings.avatar} alt="Me" className="w-full h-full object-cover" />
                ) : (
                  '🐂'
                )}
             </div>
-            <h1 className={`font-black text-2xl tracking-tighter font-hand ${textColorClass}`}>
-              {isBreakdownMode ? '牛马 (倒霉版)' : '牛马时钟'}
+            <h1 className={`font-black text-2xl tracking-tighter font-hand ${textColorClass} ${isRunMode ? 'scale-125 origin-left text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]' : ''}`}>
+              {isRunMode ? '润！！！' : (isBreakdownMode ? '牛马 (倒霉版)' : '牛马时钟')}
             </h1>
             {isBreakdownMode && <span className="text-2xl animate-pulse">⚡</span>}
+            {isRunMode && <span className="text-2xl animate-spin">🌟</span>}
           </div>
           <div className="flex gap-2">
              <button
@@ -639,13 +757,15 @@ function App() {
              >
                 {isBreakdownMode ? '⚰️' : '📸'}
              </button>
-             <button
-               onClick={enterFocusMode}
-               className={`hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
-               title="全屏进入专注模式"
-             >
-               🍅 专注模式
-             </button>
+             {!isRunMode && (
+                 <button
+                   onClick={enterFocusMode}
+                   className={`hidden md:block p-2 text-sm font-bold border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
+                   title="全屏进入专注模式"
+                 >
+                   🍅 专注模式
+                 </button>
+             )}
              <button 
                 onClick={() => setIsSettingsOpen(true)}
                 className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
@@ -660,38 +780,53 @@ function App() {
         
         {/* Top Header - Time */}
         <div className="text-center mb-2 cursor-pointer group relative" onClick={() => setIsCalendarOpen(true)}>
-           <div className={`inline-block border-2 border-black px-6 py-2 rounded-full mb-4 shadow-comic transition-transform group-hover:scale-105 ${isBreakdownMode ? 'bg-white text-black' : 'bg-black text-white'}`}>
-              <span className="font-bold tracking-widest uppercase">{status}</span>
+           {/* Speed Lines */}
+           {isRunMode && (
+              <>
+                 <div className="speed-line top-10 right-0 w-32"></div>
+                 <div className="speed-line top-20 -right-10 w-48 animation-delay-200"></div>
+                 <div className="speed-line top-5 right-20 w-20 animation-delay-500"></div>
+              </>
+           )}
+
+           <div className={`inline-block border-2 border-black px-6 py-2 rounded-full mb-4 shadow-comic transition-transform group-hover:scale-105 ${isRunMode ? 'bg-white text-green-600' : (isBreakdownMode ? 'bg-white text-black' : 'bg-black text-white')}`}>
+              <span className="font-bold tracking-widest uppercase">{isRunMode ? 'FREEDOM' : status}</span>
            </div>
-           <div className={`flex justify-center items-baseline font-black text-7xl md:text-8xl font-mono tracking-tighter transition-colors ${textColorClass}`}>
+           <div className={`flex justify-center items-baseline font-black text-7xl md:text-8xl font-mono tracking-tighter transition-colors ${isRunMode ? 'text-white drop-shadow-[4px_4px_0_rgba(0,0,0,1)]' : textColorClass}`}>
              {formattedTime}
-             <span className={`text-4xl ml-2 ${isBreakdownMode ? 'text-gray-400' : 'text-gray-400'}`}>{formattedSeconds}</span>
+             <span className={`text-4xl ml-2 ${isRunMode ? 'text-white/80' : 'text-gray-400'}`}>{formattedSeconds}</span>
            </div>
            <div className="flex items-center justify-center gap-2 mt-1">
-             <p className={`font-bold transition-colors ${isBreakdownMode ? 'text-gray-300' : 'text-gray-500 group-hover:text-black'}`}>
+             <p className={`font-bold transition-colors ${isRunMode ? 'text-white' : (isBreakdownMode ? 'text-gray-300' : 'text-gray-500 group-hover:text-black')}`}>
                {currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
              </p>
-             <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold animate-pulse">宜忌</span>
+             <span className={`text-xs px-1.5 py-0.5 rounded font-bold animate-pulse ${isRunMode ? 'bg-white text-green-600' : 'bg-red-500 text-white'}`}>
+                {isRunMode ? '宜润' : '宜忌'}
+             </span>
            </div>
         </div>
 
-        {/* Draggable List */}
-        <DndContext 
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext 
-            items={cardOrder}
-            strategy={verticalListSortingStrategy}
-          >
-            {cardOrder.map((id) => (
-              <SortableItem key={id} id={id}>
-                {renderCard(id)}
-              </SortableItem>
-            ))}
-          </SortableContext>
-        </DndContext>
+        {/* Card Content Area */}
+        {isRunMode ? (
+            renderRunModeCards()
+        ) : (
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={cardOrder}
+                strategy={verticalListSortingStrategy}
+              >
+                {cardOrder.map((id) => (
+                  <SortableItem key={id} id={id}>
+                    {renderCard(id)}
+                  </SortableItem>
+                ))}
+              </SortableContext>
+            </DndContext>
+        )}
 
       </main>
 
