@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, Input, Button, ScrollView, Image } from '@tarojs/components';
+import { View as TaroView, Text as TaroText, Input as TaroInput, Button as TaroButton, ScrollView as TaroScrollView, Image as TaroImage } from '@tarojs/components';
 import { UserSettings } from '../../types';
 import Taro from '@tarojs/taro';
+
+const View = TaroView as any;
+const Text = TaroText as any;
+const Input = TaroInput as any;
+const Button = TaroButton as any;
+const ScrollView = TaroScrollView as any;
+const Image = TaroImage as any;
 
 interface SettingsDrawerProps {
   isOpen: boolean;

@@ -1,5 +1,9 @@
 import React from 'react';
-import { View, Image, Text } from '@tarojs/components';
+import { View as TaroView, Image as TaroImage, Text as TaroText } from '@tarojs/components';
+
+const View = TaroView as any;
+const Image = TaroImage as any;
+const Text = TaroText as any;
 
 interface NavbarProps {
   avatar?: string;

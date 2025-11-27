@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text } from '@tarojs/components';
+import { View as TaroView, Text as TaroText } from '@tarojs/components';
+
+const View = TaroView as any;
+const Text = TaroText as any;
 
 interface BaseCardProps {
   title: string;
