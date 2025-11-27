@@ -31,6 +31,11 @@
               'flash': 'flash 0.5s ease-out',
               'run-sequence': 'run-sequence 2s ease-in-out forwards',
               'twinkle': 'twinkle 2s infinite ease-in-out',
+              'glitch': 'glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite',
+              'shake-hard': 'shake-hard 0.1s cubic-bezier(.36,.07,.19,.97) both infinite',
+              'pulse-red': 'pulse-red 1s infinite',
+              'blur-pulse': 'blur-pulse 2s infinite',
+              'spin-slow': 'spin 3s linear infinite',
             },
             keyframes: {
               'bounce-sm': {
@@ -42,6 +47,13 @@
                 '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
                 '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
                 '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              },
+              'shake-hard': {
+                '0%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                '25%': { transform: 'translate(5px, 5px) rotate(2deg)' },
+                '50%': { transform: 'translate(0px, 2px) rotate(0deg)' },
+                '75%': { transform: 'translate(-5px, 5px) rotate(-2deg)' },
+                '100%': { transform: 'translate(0px, 0px) rotate(0deg)' }
               },
               'slide-in': {
                 '0%': { transform: 'translateY(100%)', opacity: '0' },
@@ -67,6 +79,22 @@
               'twinkle': {
                 '0%, 100%': { opacity: '0.3', transform: 'scale(0.8)' },
                 '50%': { opacity: '1', transform: 'scale(1.2)' }
+              },
+              'glitch': {
+                '0%': { transform: 'translate(0)' },
+                '20%': { transform: 'translate(-2px, 2px)' },
+                '40%': { transform: 'translate(-2px, -2px)' },
+                '60%': { transform: 'translate(2px, 2px)' },
+                '80%': { transform: 'translate(2px, -2px)' },
+                '100%': { transform: 'translate(0)' }
+              },
+              'pulse-red': {
+                '0%, 100%': { boxShadow: '0 0 0 0 rgba(220, 38, 38, 0.7)' },
+                '70%': { boxShadow: '0 0 0 20px rgba(220, 38, 38, 0)' }
+              },
+              'blur-pulse': {
+                '0%, 100%': { filter: 'blur(0px)' },
+                '50%': { filter: 'blur(2px)' }
               }
             }
           },
@@ -80,6 +108,7 @@
         background-image: radial-gradient(#00000010 1px, transparent 1px);
         background-size: 20px 20px;
         transition: background-color 1s ease;
+        overflow-x: hidden; /* Prevent horizontal scroll from flying animations */
       }
       /* Custom scrollbar */
       ::-webkit-scrollbar {

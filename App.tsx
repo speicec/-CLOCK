@@ -200,7 +200,7 @@ function App() {
 
   // Rain Effect Logic
   useEffect(() => {
-    if (isBreakdownMode && rainRef.current) {
+    if (isBreakdownMode && !isRunMode && rainRef.current) {
       const container = rainRef.current;
       container.innerHTML = '';
       const dropCount = 50;
@@ -213,7 +213,7 @@ function App() {
         container.appendChild(drop);
       }
     }
-  }, [isBreakdownMode]);
+  }, [isBreakdownMode, isRunMode]);
 
   // Star Effect Logic for Run Mode
   useEffect(() => {
@@ -476,6 +476,9 @@ function App() {
         setAvatarClicks(0);
         setRunAnimationActive(true);
         setIsRunMode(true);
+        // Force exit breakdown mode if active
+        setIsBreakdownMode(false);
+        setTriggerLightning(false);
         
         // Trigger Special Random Event
         setRandomEvent({
@@ -753,9 +756,13 @@ function App() {
           <div className="flex gap-2">
              <button
                onClick={() => setIsShareModalOpen(true)}
-               className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white'}`}
+               className={`p-2 border-2 border-black rounded-lg transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] 
+               ${isRunMode 
+                  ? 'bg-white text-green-600 border-black hover:bg-green-100' 
+                  : (isBreakdownMode ? 'bg-gray-200 hover:bg-white' : 'hover:bg-black hover:text-white')
+               }`}
              >
-                {isBreakdownMode ? '⚰️' : (isRunMode ? '✈️' : '📸')}
+                {isRunMode ? '✈️' : (isBreakdownMode ? '⚰️' : '📸')}
              </button>
              {!isRunMode && (
                  <button
